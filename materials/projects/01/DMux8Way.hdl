@@ -1,0 +1,64 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/01/DMux8Way.hdl
+
+/**
+ * 8-way demultiplexor:
+ * {a, b, c, d, e, f, g, h} = {in, 0, 0, 0, 0, 0, 0, 0} if sel == 000
+ *                            {0, in, 0, 0, 0, 0, 0, 0} if sel == 001
+ *                            etc.
+ *                            {0, 0, 0, 0, 0, 0, 0, in} if sel == 111
+ */
+
+CHIP DMux8Way {
+    IN in, sel[3];
+    OUT a, b, c, d, e, f, g, h;
+
+    PARTS:
+    Not(in=sel[0], out=nsel0);
+    Not(in=sel[1], out=nsel1);
+    Not(in=sel[2], out=nsel2);
+
+    // part A
+    And(a=nsel0, b=nsel1, out=intermediateA);
+    And(a=intermediateA, b=nsel2, out=gateA);
+    
+    // part B
+    And(a=sel[0], b=nsel1, out=intermediateB);
+    And(a=intermediateB, b=nsel2, out=gateB);
+
+    // part C
+    And(a=nsel0, b=sel[1], out=intermediateC);
+    And(a=intermediateC, b=nsel2, out=gateC);
+
+    // part D
+    And(a=sel[0], b=sel[1], out=intermediateE);
+    And(a=intermediateE, b=nsel2, out=gateD);
+
+    // part E
+    And(a=nsel0, b=nsel1, out=intermediateD);
+    And(a=intermediateD, b=sel[2], out=gateE);
+
+    // part F
+    And(a=sel[0], b=nsel1, out=intermediateF);
+    And(a=intermediateF, b=sel[2], out=gateF);
+
+    // part G
+    And(a=nsel0, b=sel[1], out=intermediateG);
+    And(a=intermediateG, b=sel[2], out=gateG);
+
+    // part H
+    And(a=sel[0], b=sel[1], out=intermediateH);
+    And(a=intermediateH, b=sel[2], out=gateH);
+    
+    // conjuction
+    And(a=in, b=gateA, out=a);
+    And(a=in, b=gateB, out=b);
+    And(a=in, b=gateC, out=c);
+    And(a=in, b=gateD, out=d);
+    And(a=in, b=gateE, out=e);
+    And(a=in, b=gateF, out=f);
+    And(a=in, b=gateG, out=g);
+    And(a=in, b=gateH, out=h);
+}

@@ -1,0 +1,7 @@
+CHIP inverter {
+  IN input;
+  OUT output;
+
+  PARTS:
+  Not(in=input, out=output);
+}
