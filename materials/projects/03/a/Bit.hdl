@@ -14,5 +14,6 @@ CHIP Bit {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    Mux(a=dataOut, b=in, sel=load, out=muxOut);
+      DFF(in=muxOut, out=dataOut, out=out); // I saw implementions using OR but it's not needed since dataOut will be t-1 out
 }

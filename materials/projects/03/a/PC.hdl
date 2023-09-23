@@ -16,5 +16,20 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // util
+    Inc16(in=outRegister, out=outInc16);
+
+    // calculate the data to load
+    Mux16(a=false, b=outInc16, sel=inc, out=incOut); // out[t] + 1
+    Mux16(a=incOut, b=in, sel=load, out=loadOut);  // in[t]
+    Mux16(a=loadOut, b=false, sel=reset, out=dataToLoad); // 0
+
+    // dataToLoad will be loaded into the register if reset or load is true
+    
+    // compute simple digit to assess registry
+    Or(a=reset, b=load, out=resetOrLoad);
+    Or(a=resetOrLoad, b=inc, out=resetOrLoadOrInc);
+
+    Register(in=dataToLoad, load=resetOrLoadOrInc, out=outRegister, out=out);
+    //  otherwise, if registers does not have a flag enabled: out[t+1] = out[t]
 }
