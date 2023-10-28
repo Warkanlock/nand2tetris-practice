@@ -6,45 +6,50 @@
 // when key is pressed, screen should be black
 // when no key is pressed, screen should be white
 
-(INIT_VAR)
-	@8192	
+(init)
+	@8192
 	D=A
 
-	// set initialize to 8192 (32 * 256 pixels)
-	@i 
+	@inc // set inc to 8192 (32*56)
 	M=D
 
-(INIT_LOOP)
-	@i
+(start)
+	@inc
 	M=M-1
 	D=M
 
-	@INIT_VAR
-	D;JLT // (index < 0, reset)
+	@init
+	D;JLT // jump if less than zero to initialize
 
 	@KBD
 	D=M
 
-	@PIXEL_BLACK
-	D;JEQ
+	// if D > 1 paint black
+	@paint_black
+	D;JLT
 
-	@PIXEL_WHITE
-	D;JMP
+	// if not, paint blank
+	@paint_white
+	D;JEQ // you can use directly a JMP here without condition
 
-(PIXEL_BLACK)             
+(paint_black)
 	@SCREEN
 	D=A
-	@i
-	A=D+M
-	M=-1  
-	@INIT_LOOP  
+
+	@inc
+	A=D+M // value of (inc) + screen address
+	M=-1
+
+	@start
 	0;JMP
 
-(PIXEL_WHITE)
+(paint_white)
 	@SCREEN
-	D=A                
-	@i    
-	A=D+M 
-	M=0    
-	@INIT_LOOP  
+	D=A
+
+	@inc
+	A=D+M // value of (inc) + screen address
+	M=1 // 1 for strips
+
+	@start
 	0;JMP
