@@ -9,4 +9,44 @@
 // This program only needs to handle arguments that satisfy
 // R0 >= 0, R1 >= 0, and R0*R1 < 32768.
 
-// Put your code here.
+
+@R1
+A=M
+
+@R0
+D=M 
+
+@R2
+M=0 
+
+// loop to multiply R0*R1 i times
+(LOOP)
+	// jump if D <= 0
+	@END
+	D;JEQ
+
+	@R1
+	D=M
+
+	@R2
+	M=D+M // R1 + R2
+
+	// create internal counter
+	@R0
+	D=M 
+
+	// decrement D
+	D=D-1 
+
+	// assign D to M
+	@R0 
+	M=D 
+
+	// loop
+	@LOOP
+	0;JMP // repeat loop
+
+// end program
+(END)
+	@END
+	0;JMP
