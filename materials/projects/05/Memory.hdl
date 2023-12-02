@@ -27,5 +27,25 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    /**
+    > We are using 13..14 bits of address to select between RAM16K, Screen, Keyboard
+
+    This is because:
+    - RAM16K has 14 bits of address
+    - Screen has 13 bits of address
+    - Keyboard has 1 bit of address
+
+    Addresses (in binary) [start..end] are:
+    - 0x0000 - 0x3FFF -> RAM16K = 0*00*0 0000 0000 0000 - 0*01*1 1111 1111 1111
+    - 0x4000 - 0x5FFF -> Screen = 0*10*0 0000 0000 0000 - 0*10*1 1111 1111 1111
+    - 0x6000 - 0x7FFF -> Keyboard = 0*11*0 0000 0000 0000 - 0*11*1 1111 1111 1111
+
+    (*..*) = bits used to select between RAM16K, Screen, Keyboard
+    **/
+    DMux4Way(in=load, sel=address[13..14], a=loadA, b=loadB, c=loadC, d=null);
+    Or(a=loadA, b=loadB, out=loadAB);
+    RAM16K(in=in, load=loadAB, address=address[0..13], out=ram16kOut);
+    Screen(in=in, load=loadC, address=address[0..12], out=screenOut);
+    Keyboard(out=keyboardOut);
+    Mux4Way16(a=ram16kOut, b=ram16kOut, c=screenOut, d=keyboardOut, sel=address[13..14], out=out);
 }
