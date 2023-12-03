@@ -41,43 +41,88 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS: 
-    // get type of instruction (A or C)
-    Not(in=instruction[15], out=typeAInstruction);
-    Not(in=typeAInstruction, out=typeCInstruction);
 
-    // C-instruction to A register
-    And(a=typeCInstruction, b=instruction[5], out=loadARegister);
-    And(a=typeCInstruction, b=instruction[4], out=loadDRegister);
+    /*
+        since instruction could be A-instruction or C-instruction, we need to check
+        1. if it's an A-instruction or C-instruction
+        2. if it's an A-instruction, we need to load the A-register with the value
+        3. if it's a C-instruction, we need to load the A-register with the value of the memory
 
-    Mux16(a=instruction, b=aluOutput, sel=loadARegister, out=Ainput);
-    
-    // A register
-    Or(a=typeAInstruction, b=loadARegister, out=loadA); // loadA = typeAInstruction || loadARegister
-    ARegister(in=Ainput, load=loadA, out=aRegisterOutput);
+        structure of the instruction
+        [1|0]xxa cccc ccdd djjj
 
-    // D register
-    Mux16(a=aRegisterOutput, b=inM, sel=instruction[12], out=outputForALU); // outputForALU = aluOutput || inM
-    DRegister(in=aluOutput, load=loadDRegister, out=dRegisterOutput);
+        bit 15: 0 for A-instruction, 1 for C-instruction
+        bit 14: not used
+        bit 13: not used
+        bit 12: a-bit when C-instruction, 1 from memory, 0 from A-register
+        bit 11: zx-bit, if 1, x is set to 0
+        bit 10: nx-bit, if 1, x is set to !x
+        bit 9: zy-bit, if 1, y is set to 0
+        bit 8: ny-bit, if 1, y is set to !y
+        bit 7: f-bit, if 1, out is set to x + y, else x & y
+        bit 6: no-bit, if 1, out is set to !out
+        bit 5: a-bit, if 1, store in A-register
+        bit 4: d-bit, if 1, store in D-register
+        bit 3: write-bit, if 1, write to memory
+        bit 2: jgt-bit, if 1, jump if x > 0
+        bit 1: jeq-bit, if 1, jump if x == 0
+        bit 0: jlt-bit, if 1, jump if x < 0
+    */
 
-    // logic
-    ALU(x=dRegisterOutput, y=outputForALU, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=aluOutput, zr=operationIsZero, ng=operationIsNegative);
+    // we check if it's an A-instruction or C-instruction
+    Not(in=instruction[15], out=isAddressInstruction); // since if it's an A-instruction, the first bit is 0
 
-    // writting to memory
-    Or16(a=false, b=aRegisterOutput, out[0..14]=addressM);
-    Or16(a=false, b=aluOutput, out=outM);
+    // define from where we should load the A-register
+    Or(a=isAddressInstruction, b=instruction[5], out=loadARegister);
+    Mux16(a=aluOutput, b=instruction, sel=isAddressInstruction, out=instructionOutput);
+    ARegister(in=instructionOutput, load=loadARegister, out=aRegisterOutput, out[0..14]=addressM);
+
+    // we choose here to load the A-register with the value of the memory
+    // or the value of the A-register depending on the instruction (A-instruction or C-instruction)
+    And(a=instruction[15], b=instruction[12], out=switchMemoryOrRegister);
+    Mux16(a=aRegisterOutput, b=inM, sel=switchMemoryOrRegister, out=outputForALU);
+
+    // get from instruction if we should store in D-register
+    And(a=instruction[15], b=instruction[4], out=shouldStoreInDRegister);
+    DRegister(in=aluOutput, load=shouldStoreInDRegister, out=dRegisterOutput);
+
+    // logic for the ALU using cccccc operation bits
+    ALU(
+        x=dRegisterOutput, 
+        y=outputForALU, 
+        zx=instruction[11], 
+        nx=instruction[10], 
+        zy=instruction[9], 
+        ny=instruction[8], 
+        f=instruction[7], 
+        no=instruction[6], 
+        zr=operationIsZero, ng=operationIsNegative, // to check if the operation is zero or negative
+        out=aluOutput,
+        out=outM
+    );
+
+    // load in memory if it's a C-instruction and it's a write operation
     And(a=instruction[15], b=instruction[3], out=writeM);
 
-    // check if it's a jump instruction
-    And(a=operationIsZero, b=instruction[1], out=jeq);
-    And(a=operationIsNegative, b=instruction[2], out=jlt);
-    Or(a=operationIsZero, b=operationIsNegative, out=zeroOrNeg);
-    Not(in=zeroOrNeg, out=positive);
-    And(a=positive, b=instruction[0], out=jgt);
-    Or(a=jeq, b=jlt, out=jle);
-    Or(a=jle, b=jgt, out=jumpToA); 
-    And(a=instruction[15], b=jumpToA, out=loadProgramCounter);
-    Not(in=loadProgramCounter, out=incrementProgramCounter);
+    // type of jump
+    And(a=instruction[15], b=instruction[0], out=jgt);
+    And(a=instruction[15], b=instruction[1], out=jeq);
+    And(a=instruction[15], b=instruction[2], out=jlt);
+    Not(in=operationIsZero, out=operationIsNotZero);
+    Not(in=operationIsNegative, out=operationIsPositive);
+    And(a=operationIsNotZero, b=operationIsPositive, out=positiveNumber);
+    And(a=positiveNumber, b=jgt, out=jumpA);
+    And(a=operationIsZero, b=jeq, out=jumpB);
+    And(a=operationIsNegative, b=jlt, out=jumpC);
+    Or(a=jumpA, b=jumpB, out=jump1);
+    Or(a=jump1, b=jumpC, out=jumpOrLoad);
 
     // program counter
-    PC(in=aRegisterOutput, inc=incrementProgramCounter, load=loadProgramCounter, reset=reset, out[0..14]=pc);
+    PC(
+        in=aRegisterOutput, 
+        load=jumpOrLoad,
+        inc=true,
+        reset=reset, 
+        out[0..14]=pc
+    );
 }
