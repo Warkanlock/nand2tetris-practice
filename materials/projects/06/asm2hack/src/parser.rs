@@ -10,9 +10,15 @@ pub enum ParserInstructionType {
 
 #[derive(Debug, PartialEq)]
 pub struct ParserFields {
-    pub line_number: usize,
+    /// internal line number to track the line in the input content
+    line_number: usize,
+    /// used for all instructions
     pub instruction_type: ParserInstructionType,
-    pub instruction_value: Option<u16>,
+    /// used for A-instructions and L-instructions
+    /// we store the value of the instruction (or the symbol)
+    pub instruction_value: Option<String>,
+    /// used for C-instructions
+    /// we store the instruction complete computation
     pub instruction_symbol: Option<String>,
 }
 
@@ -66,7 +72,7 @@ impl Parser {
                         instruction_type: ParserInstructionType::AInstruction,
                         instruction_symbol: None,
                         // set to 0 in case it fails to parse
-                        instruction_value: Some(line.replace("@", "").parse::<u16>().unwrap_or(0)),
+                        instruction_value: Some(line.replace("@", "")),
                     });
                 }
                 Some(_) => {
@@ -181,7 +187,7 @@ mod tests {
             parser.fields[0].instruction_type,
             ParserInstructionType::AInstruction
         );
-        assert_eq!(parser.fields[0].instruction_value, Some(20));
+        assert_eq!(parser.fields[0].instruction_value, Some("20".to_string()));
     }
 
     #[test]
@@ -205,7 +211,7 @@ mod tests {
             parser.fields[0].instruction_type,
             ParserInstructionType::AInstruction
         );
-        assert_eq!(parser.fields[0].instruction_value, Some(20));
+        assert_eq!(parser.fields[0].instruction_value, Some("20".to_string()));
 
         // the comment should not have a value and should be ignored
         assert_eq!(parser.fields[1].line_number, 2);
