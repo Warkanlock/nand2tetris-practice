@@ -10,13 +10,13 @@ pub enum ParserInstructionType {
 
 #[derive(Debug, PartialEq)]
 pub struct ParserFields {
-    /// internal line number to track the line in the input content
+    /// internal line number to track the line in the file
     line_number: usize,
     /// used for all instructions
     pub instruction_type: ParserInstructionType,
     /// used for A-instructions and L-instructions
     /// we store the value of the instruction (or the symbol)
-    pub instruction_value: Option<String>,
+    pub instruction_value: Option<u16>,
     /// used for C-instructions
     /// we store the instruction complete computation
     pub instruction_symbol: Option<String>,
@@ -43,7 +43,7 @@ impl Parser {
         for (index, mut line) in lines.enumerate() {
             // remove spaces from line on both sides
             line = line.trim();
-            let line_number : usize = index + 1;
+            let line_number: usize = index + 1;
 
             // revisit the first character of the line
             match line.chars().nth(0) {
@@ -66,14 +66,29 @@ impl Parser {
                     });
                 }
                 Some('@') => {
-                    // check if line is an A instruction
-                    self.fields.push(ParserFields {
-                        line_number,
-                        instruction_type: ParserInstructionType::AInstruction,
-                        instruction_symbol: None,
-                        // set to 0 in case it fails to parse
-                        instruction_value: Some(line.replace("@", "")),
-                    });
+                    // extract from line the value or the symbolic reference
+                    let is_value = line.chars().skip(1).next().unwrap().is_numeric();
+
+                    if is_value {
+                        // check if line is an A instruction
+                        self.fields.push(ParserFields {
+                            line_number,
+                            instruction_type: ParserInstructionType::AInstruction,
+                            instruction_symbol: None,
+                            // set to 0 in case it fails to parse
+                            instruction_value: Some(
+                                line.replace("@", "").parse::<u16>().unwrap_or(0),
+                            ),
+                        });
+                    } else {
+                        // check if line is an A instruction
+                        self.fields.push(ParserFields {
+                            line_number,
+                            instruction_type: ParserInstructionType::AInstruction,
+                            instruction_symbol: Some(line.replace("@", "")),
+                            instruction_value: None,
+                        });
+                    }
                 }
                 Some(_) => {
                     // check if line is a C instruction
@@ -187,7 +202,29 @@ mod tests {
             parser.fields[0].instruction_type,
             ParserInstructionType::AInstruction
         );
-        assert_eq!(parser.fields[0].instruction_value, Some("20".to_string()));
+        assert_eq!(parser.fields[0].instruction_value, Some(20));
+    }
+
+    #[test]
+    fn fn_parse_simple_valid_asm_ainnstruction() {
+        let input_asm = "@reference";
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+
+        assert_eq!(parser.fields.len(), 1);
+        assert_eq!(parser.fields[0].line_number, 1);
+        assert_eq!(
+            parser.fields[0].instruction_type,
+            ParserInstructionType::AInstruction
+        );
+        assert_eq!(parser.fields[0].instruction_value, None);
+        assert_eq!(parser.fields[0].instruction_symbol, Some("reference".to_string()));
     }
 
     #[test]
@@ -211,7 +248,7 @@ mod tests {
             parser.fields[0].instruction_type,
             ParserInstructionType::AInstruction
         );
-        assert_eq!(parser.fields[0].instruction_value, Some("20".to_string()));
+        assert_eq!(parser.fields[0].instruction_value, Some(20));
 
         // the comment should not have a value and should be ignored
         assert_eq!(parser.fields[1].line_number, 2);
@@ -237,12 +274,13 @@ mod tests {
         // validate that we are counting the comment as field as well
         assert_eq!(parser.fields.len(), 2);
 
-        let c_instrument = parser.fields.iter().find(|&x| {
-            x.line_number == 2
-        }).unwrap();
+        let c_instrument = parser.fields.iter().find(|&x| x.line_number == 2).unwrap();
 
         assert_eq!(c_instrument.line_number, 2);
-        assert_eq!(c_instrument.instruction_type, ParserInstructionType::CInstruction);
+        assert_eq!(
+            c_instrument.instruction_type,
+            ParserInstructionType::CInstruction
+        );
         assert_eq!(c_instrument.instruction_symbol, Some("D=D+A".to_string()));
         assert_eq!(c_instrument.instruction_value, None);
     }
