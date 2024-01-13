@@ -1,4 +1,4 @@
-use crate::logs::{log_info, log_success};
+use crate::logs::log_success;
 
 #[derive(Debug, PartialEq)]
 pub enum ParserInstructionType {
@@ -10,10 +10,10 @@ pub enum ParserInstructionType {
 
 #[derive(Debug, PartialEq)]
 pub struct ParserFields {
-    line_number: usize,
-    instruction_type: ParserInstructionType,
-    instruction_value: Option<u16>,
-    instruction_symbol: Option<String>,
+    pub line_number: usize,
+    pub instruction_type: ParserInstructionType,
+    pub instruction_value: Option<u16>,
+    pub instruction_symbol: Option<String>,
 }
 
 pub struct Parser {
@@ -23,6 +23,10 @@ pub struct Parser {
 }
 
 impl Parser {
+    pub fn get_fields(&self) -> &Vec<ParserFields> {
+        &self.fields
+    }
+
     fn _parse_simple(&mut self) {
         log_success("Parsing input file without symbolic links");
 
@@ -100,10 +104,10 @@ impl Parser {
         }
 
         if self.is_symbolic {
-            self._parse_complex();
+            return self._parse_complex();
         }
 
-        self._parse_simple();
+        return self._parse_simple();
     }
 }
 
@@ -235,5 +239,21 @@ mod tests {
         assert_eq!(c_instrument.instruction_type, ParserInstructionType::CInstruction);
         assert_eq!(c_instrument.instruction_symbol, Some("D=D+A".to_string()));
         assert_eq!(c_instrument.instruction_value, None);
+    }
+
+    #[test]
+    fn fn_get_fields_after_parse() {
+        let input_asm = "@20\nD=D+A";
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+
+        // validate that we are counting the comment as field as well
+        assert_eq!(parser.get_fields().len(), 2);
     }
 }

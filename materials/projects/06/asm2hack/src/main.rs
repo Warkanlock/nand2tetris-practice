@@ -1,4 +1,5 @@
 use clap::Parser as ClapParser;
+use logs::log_info;
 
 // module definitions
 mod parser;
@@ -29,5 +30,20 @@ pub fn main() {
     let symbolic = args.symbolic;
 
     utils::header_info(app_name, version, &input, symbolic);
+
+    let input_content = utils::read_file(&input);
+
+    // create a new parser
+    let mut parser = parser::Parser::new(&input_content, symbolic);
+
+    // run the parser against the content
+    parser.parse();
+
+    // get the fields
+    let fields = parser.get_fields();
+
+    for field in fields.iter() {
+        log_info(format!("{:?}", field).as_str());
+    }
 }
 

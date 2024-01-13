@@ -27,3 +27,14 @@ pub fn header_info(app_name: &str, version: &str, input: &str, symbolic: bool) {
     make_divider('=', None);
     log_success(format!("output: {}", input).as_str());
 }
+
+/// Reads the contents of a file.
+///
+/// # Arguments
+///
+/// * `input` - The input file to read.
+pub fn read_file(input: &str) -> String {
+    log_info(format!("reading file: {}", input).as_str());
+    let input_content = std::fs::read_to_string(input).expect("failed to read file");
+    input_content
+}
