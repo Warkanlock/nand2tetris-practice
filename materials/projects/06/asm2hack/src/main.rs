@@ -1,8 +1,13 @@
-use clap::Parser;
+use clap::Parser as ClapParser;
+
+// module definitions
+mod parser;
+mod utils;
+mod logs;
 
 /// interface to assemble Hack assembly language programs into binary code
 /// for execution in the Hack hardware platform
-#[derive(Parser, Debug)]
+#[derive(ClapParser, Debug)]
 #[command(author = "txxnano", version, about)]
 pub struct Args {
     #[arg(short, long, default_value_t = false)]
@@ -14,14 +19,9 @@ pub struct Args {
     input: String,
 }
 
-
-// implement modules
-mod parser;
-mod utils;
-
-fn main() {
+pub fn main() {
     let args = Args::parse();
-    
+
     // extract parameters from command line
     let app_name = "asm2hack assembler";
     let version = env!("CARGO_PKG_VERSION");
