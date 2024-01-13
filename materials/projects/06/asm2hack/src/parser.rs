@@ -68,7 +68,7 @@ impl Parser {
                 Some(_) => {
                     // check if line is a C instruction
                     self.fields.push(ParserFields {
-                        line_number: 0,
+                        line_number,
                         instruction_type: ParserInstructionType::CInstruction,
                         instruction_symbol: Some(line.to_string()),
                         instruction_value: None,
@@ -210,5 +210,30 @@ mod tests {
             ParserInstructionType::Comment
         );
         assert_eq!(parser.fields[1].instruction_value, None);
+    }
+
+    #[test]
+    fn fn_parse_simple_valid_asm_with_cinstruction() {
+        let input_asm = "@20\nD=D+A";
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+
+        // validate that we are counting the comment as field as well
+        assert_eq!(parser.fields.len(), 2);
+
+        let c_instrument = parser.fields.iter().find(|&x| {
+            x.line_number == 2
+        }).unwrap();
+
+        assert_eq!(c_instrument.line_number, 2);
+        assert_eq!(c_instrument.instruction_type, ParserInstructionType::CInstruction);
+        assert_eq!(c_instrument.instruction_symbol, Some("D=D+A".to_string()));
+        assert_eq!(c_instrument.instruction_value, None);
     }
 }
