@@ -22,12 +22,16 @@ pub struct Parser {
 
 impl Parser {
     fn _parse_simple(&mut self) {
-        log_success("Parsing input file")
+        log_success("Parsing input file without symbolic links")
     }
 
-    pub fn new(input: &str, is_symbolic: Option<bool>) -> Self {
+    fn _parse_complex(&mut self) {
+        log_success("Parsing input file with symbolic links")
+    }
+
+    pub fn new(input: &str, is_symbolic: bool) -> Self {
         Self {
-            is_symbolic: is_symbolic.unwrap_or(false),
+            is_symbolic,
             input: String::from(input),
             fields: Vec::new(), // always initialize fields to empty vector
         }
@@ -36,12 +40,11 @@ impl Parser {
     pub fn parse(&mut self) {
         // check if input is defined
         if self.input.is_empty() {
-            log_info("Input file is not defined. Please use a valid non-empty file");
-            return;
+            panic!("Input file is empty");
         }
 
         if self.is_symbolic {
-            log_info("Symbolic mode is not supported yet");
+            self._parse_complex();
         }
 
         self._parse_simple();
@@ -54,16 +57,48 @@ mod tests {
 
     #[test]
     fn fn_init_parser() {
-        let parser = Parser::new(&String::from("test.asm"), None);
+        let input = "random string";
+        let parser = Parser::new(input, false);
 
         assert_eq!(parser.is_symbolic, false);
-        assert_eq!(parser.input, "test.asm");
+        assert_eq!(parser.input, input);
+        assert_eq!(parser.fields.len(), 0);
+    }
+    
+    #[test]
+    fn fn_parse_complex_non_valid_string() {
+        let input = "random string";
+        let mut parser = Parser::new(input, true);
+
+        assert_eq!(parser.is_symbolic, true);
+        assert_eq!(parser.input, input);
+        assert_eq!(parser.fields.len(), 0);
+
+        // check if throw error
+        parser.parse();
+    }
+
+    #[test]
+    fn fn_parse_simple_non_valid_string() {
+        let input = "random string";
+        let parser = Parser::new(input, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input);
         assert_eq!(parser.fields.len(), 0);
     }
 
     #[test]
-    fn fn_parse_simple() {
-        let mut parser = Parser::new(&String::from("test.asm"), None);
+    #[should_panic(expected = "Input file is empty")]
+    fn fn_parse_simple_throw_when_empty_input() {
+        let input = "";
+        let mut parser = Parser::new(input, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input);
+        assert_eq!(parser.fields.len(), 0);
+
+        // check if throw error
         parser.parse();
     }
 }
