@@ -128,7 +128,6 @@ impl Parser {
                         (split.next(), split.next())
                     });
 
-
                     // validate if the isntruction is valid
                     if comp.as_deref() == Some("") || dest.as_deref() == Some("") {
                         panic!("Invalid instruction format: {}", line)
@@ -440,7 +439,7 @@ mod tests {
 
         parser.parse();
     }
-    
+
     #[test]
     #[should_panic(expected = "Invalid instruction schema: ;JMP")]
     fn fn_get_incorrect_jmp_only_instruction() {
