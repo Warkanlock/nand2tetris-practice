@@ -20,6 +20,13 @@ pub struct ParserFields {
     /// used for C-instructions
     /// we store the instruction complete computation
     pub instruction_symbol: Option<String>,
+    /// instructions used for C-instructions
+    /// we store the instruction destination
+    /// we store the instruction jump
+    /// we store the instruction computation
+    pub instruction_dest: Option<String>,
+    pub instruction_jump: Option<String>,
+    pub instruction_comp: Option<String>,
 }
 
 pub struct Parser {
@@ -54,6 +61,9 @@ impl Parser {
                         instruction_type: ParserInstructionType::Comment,
                         instruction_symbol: None,
                         instruction_value: None,
+                        instruction_dest: None,
+                        instruction_jump: None,
+                        instruction_comp: None,
                     });
                 }
                 Some('(') => {
@@ -63,6 +73,9 @@ impl Parser {
                         instruction_type: ParserInstructionType::LInstruction,
                         instruction_symbol: Some(line.replace(")", "").chars().skip(1).collect()),
                         instruction_value: None,
+                        instruction_dest: None,
+                        instruction_jump: None,
+                        instruction_comp: None,
                     });
                 }
                 Some('@') => {
@@ -79,6 +92,9 @@ impl Parser {
                             instruction_value: Some(
                                 line.replace("@", "").parse::<u16>().unwrap_or(0),
                             ),
+                            instruction_dest: None,
+                            instruction_jump: None,
+                            instruction_comp: None,
                         });
                     } else {
                         // check if line is an A instruction
@@ -87,16 +103,46 @@ impl Parser {
                             instruction_type: ParserInstructionType::AInstruction,
                             instruction_symbol: Some(line.replace("@", "")),
                             instruction_value: None,
+                            instruction_dest: None,
+                            instruction_jump: None,
+                            instruction_comp: None,
                         });
                     }
                 }
                 Some(_) => {
+                    // split and collect the parts
+                    let parts: Vec<&str> = line.split('=').collect();
+
+                    // check if parts is higher than 2 at least
+                    if parts.len() == 1 {
+                        panic!("Invalid instruction schema: {}.", line)
+                    }
+
+                    // get dest, comp and jump
+                    let dest = parts.get(0).map(|s| s.to_string());
+                    let (comp, jump) = parts.get(1).map_or((None, None), |s| {
+                        // divide second part based on ;
+                        let mut split = s.split(';').map(|s| s.to_string());
+
+                        // return tuple
+                        (split.next(), split.next())
+                    });
+
+
+                    // validate if the isntruction is valid
+                    if comp.as_deref() == Some("") || dest.as_deref() == Some("") {
+                        panic!("Invalid instruction format: {}", line)
+                    }
+
                     // check if line is a C instruction
                     self.fields.push(ParserFields {
                         line_number,
                         instruction_type: ParserInstructionType::CInstruction,
                         instruction_symbol: Some(line.to_string()),
                         instruction_value: None,
+                        instruction_dest: dest,
+                        instruction_comp: comp,
+                        instruction_jump: jump,
                     });
                 }
                 None => {
@@ -224,7 +270,10 @@ mod tests {
             ParserInstructionType::AInstruction
         );
         assert_eq!(parser.fields[0].instruction_value, None);
-        assert_eq!(parser.fields[0].instruction_symbol, Some("reference".to_string()));
+        assert_eq!(
+            parser.fields[0].instruction_symbol,
+            Some("reference".to_string())
+        );
     }
 
     #[test]
@@ -299,5 +348,124 @@ mod tests {
 
         // validate that we are counting the comment as field as well
         assert_eq!(parser.get_fields().len(), 2);
+    }
+
+    #[test]
+    fn fn_get_dest_comp_instruction() {
+        let input_asm = "D=D+A";
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+
+        // validate that we are counting the comment as field as well
+        assert_eq!(parser.get_fields().len(), 1);
+
+        let c_instrument: &ParserFields =
+            parser.fields.iter().find(|&x| x.line_number == 1).unwrap();
+
+        assert_eq!(c_instrument.line_number, 1);
+        assert_eq!(
+            c_instrument.instruction_type,
+            ParserInstructionType::CInstruction
+        );
+        assert_eq!(c_instrument.instruction_symbol, Some("D=D+A".to_string()));
+        assert_eq!(c_instrument.instruction_value, None);
+        assert_eq!(c_instrument.instruction_dest, Some("D".to_string()));
+        assert_eq!(c_instrument.instruction_comp, Some("D+A".to_string()));
+        assert_eq!(c_instrument.instruction_jump, None);
+    }
+
+    #[test]
+    fn fn_get_dest_comp_jump_instruction() {
+        let input_asm = "D=D+A;JMP"; // unconditional jump
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+
+        // validate that we are counting the comment as field as well
+        assert_eq!(parser.get_fields().len(), 1);
+
+        let c_instrument: &ParserFields =
+            parser.fields.iter().find(|&x| x.line_number == 1).unwrap();
+
+        assert_eq!(c_instrument.line_number, 1);
+        assert_eq!(
+            c_instrument.instruction_type,
+            ParserInstructionType::CInstruction
+        );
+        assert_eq!(
+            c_instrument.instruction_symbol,
+            Some("D=D+A;JMP".to_string())
+        );
+        assert_eq!(c_instrument.instruction_value, None);
+        assert_eq!(c_instrument.instruction_dest, Some("D".to_string()));
+        assert_eq!(c_instrument.instruction_comp, Some("D+A".to_string()));
+        assert_eq!(c_instrument.instruction_jump, Some("JMP".to_string()));
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid instruction format: D=")]
+    fn fn_get_incorrect_dest_comp_instruction() {
+        let input_asm = "D="; // unconditional jump
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid instruction format: =D+A")]
+    fn fn_get_incorrect_comp_instruction() {
+        let input_asm = "=D+A"; // unconditional jump
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+    }
+    
+    #[test]
+    #[should_panic(expected = "Invalid instruction schema: ;JMP")]
+    fn fn_get_incorrect_jmp_only_instruction() {
+        let input_asm = ";JMP"; // unconditional jump
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid instruction schema: D")]
+    fn fn_get_empty_instruction() {
+        let input_asm = "D"; // unconditional jump
+
+        let mut parser = Parser::new(input_asm, false);
+
+        assert_eq!(parser.is_symbolic, false);
+        assert_eq!(parser.input, input_asm);
+        assert_eq!(parser.fields.len(), 0);
+
+        parser.parse();
     }
 }
