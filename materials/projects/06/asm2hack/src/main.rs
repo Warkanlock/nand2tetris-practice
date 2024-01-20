@@ -1,10 +1,12 @@
 use clap::Parser as ClapParser;
+use code::process_fields;
 use logs::log_info;
 
 // module definitions
 mod parser;
 mod utils;
 mod logs;
+mod code;
 
 /// interface to assemble Hack assembly language programs into binary code
 /// for execution in the Hack hardware platform
@@ -42,8 +44,11 @@ pub fn main() {
     // get the fields
     let fields = parser.get_fields();
 
-    for field in fields.iter() {
-        log_info(format!("{:?}", field).as_str());
+    let binary_instructions = process_fields(fields);
+
+    // print the binary instructions
+    for binary_instruction in binary_instructions.iter() {
+        log_info(&binary_instruction.binary);
     }
 }
 

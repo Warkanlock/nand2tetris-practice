@@ -55,4 +55,10 @@ fn create_parser_use_fields() {
         line.instruction_type,
         asm2hack::parser::ParserInstructionType::CInstruction
     );
+
+    // process those fields
+    let binary_instructions = asm2hack::code::process_fields(&fields);
+
+    // check total binary instructions
+    assert_eq!(binary_instructions.len(), total_lines);
 }

@@ -1,6 +1,6 @@
 use crate::logs::log_success;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ParserInstructionType {
     AInstruction, // address-instruction
     CInstruction, // compute-instruction
@@ -8,10 +8,10 @@ pub enum ParserInstructionType {
     Comment,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ParserFields {
     /// internal line number to track the line in the file
-    line_number: usize,
+    pub line_number: usize,
     /// used for all instructions
     pub instruction_type: ParserInstructionType,
     /// used for A-instructions and L-instructions
