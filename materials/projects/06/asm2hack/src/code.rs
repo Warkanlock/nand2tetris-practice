@@ -1,12 +1,12 @@
 use crate::parser::{ParserFields, ParserInstructionType};
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BinaryInstruction {
     pub instruction: ParserFields,
     pub binary: String,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BinaryInstructionStrategy {
     Dest,
     Comp,

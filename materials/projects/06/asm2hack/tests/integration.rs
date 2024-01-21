@@ -57,8 +57,50 @@ fn create_parser_use_fields() {
     );
 
     // process those fields
-    let binary_instructions = asm2hack::code::process_fields(&fields);
+    let mut binary_instructions = asm2hack::code::process_fields(&fields);
 
     // check total binary instructions
     assert_eq!(binary_instructions.len(), total_lines);
+
+    // filter comment type lines
+    binary_instructions = binary_instructions
+        .into_iter()
+        .filter(|line| line.instruction.instruction_type != asm2hack::parser::ParserInstructionType::Comment)
+        .collect();
+
+    // check A-instruction line @2
+    assert_eq!(
+        binary_instructions[0].binary,
+        String::from("0000000000000010")
+    );
+
+    // check C-instruction line D=A
+    assert_eq!(
+        binary_instructions[1].binary,
+        String::from("1110110000010000")
+    );
+
+    // check A-instruction line @3
+    assert_eq!(
+        binary_instructions[2].binary,
+        String::from("0000000000000011")
+    );
+
+    // check C-instruction line D=D+A
+    assert_eq!(
+        binary_instructions[3].binary,
+        String::from("1110000010010000")
+    );
+
+    // check A-instruction line @0
+    assert_eq!(
+        binary_instructions[4].binary,
+        String::from("0000000000000000")
+    );
+
+    // check C-instruction line M=D
+    assert_eq!(
+        binary_instructions[5].binary,
+        String::from("1110001100001000")
+    );
 }
