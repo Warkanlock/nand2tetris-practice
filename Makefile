@@ -5,3 +5,7 @@ hardware:
 cpu:
 	@echo "Opening simulator..."
 	./materials/tools/CPUEmulator.sh
+
+asm:
+	@echo "Opening assembler simulator..."
+	./materials/tools/Assembler.sh
