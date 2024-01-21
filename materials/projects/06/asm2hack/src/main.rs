@@ -1,6 +1,6 @@
 use clap::Parser as ClapParser;
 use code::process_fields;
-use logs::log_info;
+use logs::log_command;
 
 // module definitions
 mod parser;
@@ -48,7 +48,7 @@ pub fn main() {
 
     // print the binary instructions
     for binary_instruction in binary_instructions.iter() {
-        log_info(&binary_instruction.binary);
+        log_command(&binary_instruction.binary);
     }
 }
 

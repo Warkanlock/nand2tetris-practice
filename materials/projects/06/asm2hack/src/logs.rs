@@ -7,6 +7,7 @@ enum MessageTypes {
     Warning,
     Error,
     Success,
+    Command,
 }
 
 fn _message(msg: &str, msg_type: MessageTypes) {
@@ -16,6 +17,7 @@ fn _message(msg: &str, msg_type: MessageTypes) {
         MessageTypes::Warning => "WARNING".yellow().bold(),
         MessageTypes::Error => "ERROR".red().bold(),
         MessageTypes::Success => "SUCCESS".green().bold(),
+        MessageTypes::Command => "COMMAND".blue().bold(),
     };
 
     println!("[{}]: {}", msg_type, msg);
@@ -39,4 +41,9 @@ pub fn log_error(msg: &str) {
 #[allow(unused)]
 pub fn log_success(msg: &str) {
     _message(msg, MessageTypes::Success);
+}
+
+#[allow(unused)]
+pub fn log_command(msg: &str) {
+    _message(msg, MessageTypes::Command);
 }
