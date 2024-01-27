@@ -1,9 +1,11 @@
+use std::io::Write;
+
 use crate::logs::{log_info, log_success};
 
 /// Creates a divider line in the console output.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `char` - The character to use for the divider.
 /// * `count` - The number of times to repeat the character.
 fn make_divider(char: char, count: Option<usize>) {
@@ -12,9 +14,9 @@ fn make_divider(char: char, count: Option<usize>) {
 }
 
 /// Prints header information for the application.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `app_name` - The name of the application.
 /// * `version` - The version of the application.
 /// * `args` - The command line arguments.
@@ -37,4 +39,18 @@ pub fn read_file(input: &str) -> String {
     log_info(format!("reading file: {}", input).as_str());
     let input_content = std::fs::read_to_string(input).expect("failed to read file");
     input_content
+}
+
+/// Saves content to a file.
+///
+/// # Arguments
+///
+/// * `input` - The input file to read.
+///
+pub fn save_file(output: &str, content: &Vec<u8>) {
+    let mut file = std::fs::File::create(output).expect("failed to create file");
+
+    for byte in content.iter() {
+        file.write_all(&[*byte]).expect("failed to write to file");
+    }
 }

@@ -65,7 +65,9 @@ fn create_parser_use_fields() {
     // filter comment type lines
     binary_instructions = binary_instructions
         .into_iter()
-        .filter(|line| line.instruction.instruction_type != asm2hack::parser::ParserInstructionType::Comment)
+        .filter(|line| {
+            line.instruction.instruction_type != asm2hack::parser::ParserInstructionType::Comment
+        })
         .collect();
 
     // check A-instruction line @2

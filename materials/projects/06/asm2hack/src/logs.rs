@@ -2,7 +2,7 @@ use colored::*;
 
 // remove warnings for unused code
 #[allow(dead_code)]
-enum MessageTypes { 
+enum MessageTypes {
     Info,
     Warning,
     Error,
