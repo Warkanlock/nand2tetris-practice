@@ -6,16 +6,16 @@ mod logs;
 mod parser;
 mod utils;
 
-/// interface to assemble Hack assembly language programs into binary code
-/// for execution in the Hack hardware platform
+/// specific implementation of Hack Virtual Machine
+/// to translate machine code (.vm) to hack assembly language (.asm)
 #[derive(ClapParser, Debug)]
 #[command(author = "txxnano", version, about)]
 pub struct Args {
     #[arg(short, long)]
-    /// input file to use (.asm)
+    /// input file to use (.vm)
     input: String,
 
-    /// output file to use (.hack)
+    /// output file to use (.asm)
     #[arg(short, long, default_value = "default")]
     output: String,
 }
