@@ -36,46 +36,41 @@ impl Parser {
     }
 
     fn _parse_simple(&mut self) {
-        log_success("Parsing input file without symbolic links");
-
-        let lines = self.input.lines();
+        log_success("Parsing input file");
 
         // should parse input and get commands into self.commands vector
-        for line in lines {
-            // we should split spaces in line
-            let line_parts = line.split(" ").into_iter().collect::<Vec<&str>>();
-
+        for line in self.input.lines() {
             // discard empty lines
-            if line_parts.len() == 0 || line_parts[0] == "//" {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with("//") {
                 continue;
             }
 
+            // we should split spaces in line
+            let line_parts: Vec<&str> = line.split_whitespace().collect();
+
             // get the command type and arguments ( part[1] and part[2] )
-            match line_parts[0] {
-                "push" => self.commands.push(Command {
+            match line_parts.get(0) {
+                Some(&"push") => self.commands.push(Command {
                     command_type: CommandType::CPush,
                     arg_1: Some(line_parts[1].to_string()),
                     arg_2: Some(line_parts[2].to_string()),
                 }),
-                "pop" => self.commands.push(Command {
+                Some(&"pop") => self.commands.push(Command {
                     command_type: CommandType::CPop,
                     arg_1: Some(line_parts[1].to_string()),
                     arg_2: Some(line_parts[2].to_string()),
                 }),
-                "add" => {
-                    self.commands.push(Command {
-                        command_type: CommandType::CArithmetic,
-                        arg_1: Some("add".to_string()),
-                        arg_2: None,
-                    });
-                }
-                "sub" => {
-                    self.commands.push(Command {
-                        command_type: CommandType::CArithmetic,
-                        arg_1: Some("sub".to_string()),
-                        arg_2: None,
-                    });
-                }
+                Some(&"add") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("add".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"sub") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("sub".to_string()),
+                    arg_2: None,
+                }),
                 _ => continue,
             };
         }
