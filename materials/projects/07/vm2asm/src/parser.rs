@@ -71,6 +71,41 @@ impl Parser {
                     arg_1: Some("sub".to_string()),
                     arg_2: None,
                 }),
+                Some(&"eq") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("eq".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"lt") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("lt".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"gt") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("gt".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"neg") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("neg".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"and") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("and".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"or") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("or".to_string()),
+                    arg_2: None,
+                }),
+                Some(&"not") => self.commands.push(Command {
+                    command_type: CommandType::CArithmetic,
+                    arg_1: Some("not".to_string()),
+                    arg_2: None,
+                }),
                 _ => continue,
             };
         }
@@ -149,6 +184,54 @@ mod tests {
     }
 
     #[test]
+    fn parse_mutliple_commands() {
+        let mut parser = Parser::new("push constant 7\npop local 0");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 2);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string())
+            }
+        );
+        assert_eq!(
+            parser.commands[1],
+            Command {
+                command_type: CommandType::CPop,
+                arg_1: Some("local".to_string()),
+                arg_2: Some("0".to_string())
+            }
+        );
+    }
+
+    #[test]
+    fn parse_multiple_arithmetic_commands() {
+        let mut parser = Parser::new("add\nsub\n");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 2);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("add".to_string()),
+                arg_2: None
+            }
+        );
+        assert_eq!(
+            parser.commands[1],
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("sub".to_string()),
+                arg_2: None
+            }
+        );
+    }
+
+    #[test]
     fn parse_arithmetic_command() {
         let mut parser = Parser::new("add");
         parser.parse();
@@ -162,5 +245,12 @@ mod tests {
                 arg_2: None
             }
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "Input should be defined before trying to parse")]
+    fn fail_at_parsing_empty_input() {
+        let mut parser = Parser::new("");
+        parser.parse();
     }
 }
