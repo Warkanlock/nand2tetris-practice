@@ -1,4 +1,5 @@
 use clap::Parser as ClapParser;
+use logs::log_info;
 
 // module definitions
 mod code;
@@ -35,9 +36,18 @@ pub fn main() {
     // read the contents of the input file
     let input_content = utils::read_file(&input);
 
-    // TODO: implement the translation from the machine code
-    // to assembly language
-    println!("Machine code: {:?}", input_content);
+    // initialize the parser
+    let mut parser = parser::Parser::new(&input_content);
+
+    // parse input
+    parser.parse();
+
+    // get the fields
+    let fields = parser.get_fields();
+
+    for field in fields {
+        log_info(&format!("{:?}", field));
+    }
 
     // save the output
     utils::save_file(&output, &Vec::new());
