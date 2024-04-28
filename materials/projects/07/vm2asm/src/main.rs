@@ -42,11 +42,18 @@ pub fn main() {
     // parse input
     parser.parse();
 
-    // get the fields
-    let fields = parser.get_fields();
+    // get the commands
+    let commands = parser.get_fields();
 
-    for field in fields {
-        log_info(&format!("{:?}", field));
+    // generate assembly generator
+    let mut generator = code::AssemblyGenerator::new();
+
+    // generate assembly instructions from commands
+    generator.process_commands(&commands);
+
+    // get the assembly instructions
+    for instruction in generator.instructions.iter() {
+        log_info(&format!("{:?}", instruction));
     }
 
     // save the output

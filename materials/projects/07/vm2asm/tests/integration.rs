@@ -53,4 +53,12 @@ fn create_virtual_machine_and_parse() {
             arg_2: Some("2".to_string())
         }
     );
+
+    // generate a assembly generator based on those commands
+    let mut generator = vm2asm::code::AssemblyGenerator::new();
+
+    // process commands
+    generator.process_commands(&commands);
+
+    assert_eq!(generator.instructions.len(), 4)
 }
