@@ -25,8 +25,6 @@ pub fn header_info(app_name: &str, version: &str, input: &str) {
     log_info(format!("version: {}", version).as_str());
     make_divider('=', None);
     log_info(format!("input: {}", input).as_str());
-    make_divider('=', None);
-    log_success(format!("output: {}", input).as_str());
 }
 
 /// Reads the contents of a file.
@@ -52,4 +50,6 @@ pub fn save_file(output: &str, content: &Vec<u8>) {
     for byte in content.iter() {
         file.write_all(&[*byte]).expect("failed to write to file");
     }
+
+    log_success(format!("file saved: {}", output).as_str());
 }

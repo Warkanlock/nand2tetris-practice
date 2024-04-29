@@ -1,4 +1,4 @@
-use crate::logs::log_success;
+use crate::logs::{log_info, log_success};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum CommandType {
@@ -36,7 +36,7 @@ impl Parser {
     }
 
     fn _parse_simple(&mut self) {
-        log_success("Parsing input file");
+        log_info("Parsing input file");
 
         // should parse input and get commands into self.commands vector
         for line in self.input.lines() {

@@ -78,6 +78,18 @@ impl AssemblyGenerator {
         instruction
     }
 
+    pub fn instructions_to_bytes(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
+
+        for instruction in self.instructions.iter() {
+            for byte in instruction.instruction.as_bytes() {
+                bytes.push(*byte);
+            }
+        }
+
+        bytes
+    }
+
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
         let mut instructions: Vec<AssemblyInstruction> = Vec::new();
 
@@ -91,8 +103,6 @@ impl AssemblyGenerator {
                     let index = reference_command.arg_2.as_ref().unwrap();
 
                     assert!(index.parse::<u8>().is_ok(), "index must be a number u8");
-
-                    println!("push to segment {} with {}", segment, index);
 
                     let mut instruction = String::new();
 
@@ -140,8 +150,6 @@ impl AssemblyGenerator {
 
                     assert!(index.parse::<u8>().is_ok(), "index must be a number u8");
 
-                    println!("pop from segment {} with {}", segment, index);
-
                     let mut instruction = String::new();
 
                     match segment.as_str() {
@@ -187,10 +195,8 @@ impl AssemblyGenerator {
                 CommandType::CArithmetic => {
                     let operation = reference_command.arg_1.as_ref().unwrap();
 
-                    println!("apply operation > {}", operation);
-
                     instructions.push(AssemblyInstruction {
-                        instruction: format!("apply operation > {}", operation),
+                        instruction: format!("{} implemented yet", operation).to_string(),
                         command: reference_command,
                     });
                 }

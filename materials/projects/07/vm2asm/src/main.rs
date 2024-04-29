@@ -1,5 +1,5 @@
 use clap::Parser as ClapParser;
-use logs::log_info;
+use logs::log_command;
 
 // module definitions
 mod code;
@@ -53,9 +53,9 @@ pub fn main() {
 
     // get the assembly instructions
     for instruction in generator.instructions.iter() {
-        log_info(&format!("{:?}", instruction));
+        log_command(&format!("{:?} from {:?}", instruction.instruction, instruction.command));
     }
 
     // save the output
-    utils::save_file(&output, &Vec::new());
+    utils::save_file(&output, &generator.instructions_to_bytes());
 }
