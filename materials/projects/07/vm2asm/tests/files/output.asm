@@ -12,4 +12,14 @@ A=M
 M=D
 @SP
 M=M+1
-add implemented yet
+@SP
+M=M-1
+D=M
+@SP
+M=M-1
+D=D+M
+@SP
+A=M
+M=D
+@SP
+M=M+1

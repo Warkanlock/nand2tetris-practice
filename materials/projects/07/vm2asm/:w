@@ -80,11 +80,9 @@ impl AssemblyGenerator {
 
     fn pop_from_stack() -> String {
         let mut instruction = String::new();
-
-        // decrease the stack in n-1
-        instruction.push_str(Self::decrease_stack().as_str());
-
-        // get the latest value at RAM[A] where A=SP
+    
+        Self::decrease_stack();
+        instruction.push_str("A=M\n");
         instruction.push_str("D=M\n");
 
         instruction
@@ -114,10 +112,7 @@ impl AssemblyGenerator {
                     let segment = reference_command.arg_1.as_ref().unwrap();
                     let index = reference_command.arg_2.as_ref().unwrap();
 
-                    assert!(
-                        index.parse::<u8>().is_ok(),
-                        "index must be a number u8 [unsigned integer]"
-                    );
+                    assert!(index.parse::<u8>().is_ok(), "index must be a number u8");
 
                     let mut instruction = String::new();
 
@@ -130,7 +125,7 @@ impl AssemblyGenerator {
                         "local" | "argument" | "this" | "that" => {
                             // 1. get index value
                             instruction.push_str(format!("@{}\n", index).as_str());
-                            instruction.push_str("D=A\n");
+                            instruction.push_str("D=A");
                             // 2. get segment at index (segment[base+index])
                             instruction
                                 .push_str(format!("@{}\n", Self::return_segment(segment)).as_str());
@@ -159,25 +154,8 @@ impl AssemblyGenerator {
                         }
                         "temp" => {
                             // should access i[0-7] RAM location
-                            let temp_base = 5;
-                            let temp_index = index.parse::<u8>().unwrap();
-
-                            assert!(temp_index < 8, "temp index must be between 0 and 7");
-
-                            instruction.push_str(format!("@{}\n", temp_base + temp_index).as_str());
-                            instruction.push_str("D=M\n");
                         }
-                        "static" => {
-                            // should access static i[16-255] RAM location
-                            let static_base = 16;
-                            let static_index = index.parse::<u8>().unwrap();
-
-                            assert!(static_index < 16, "static index must be between 16 and 255");
-
-                            instruction
-                                .push_str(format!("@{}\n", static_base + static_index).as_str());
-                            instruction.push_str("D=M\n");
-                        }
+                        "static" => {}
                         _ => {
                             panic!("segment not valid");
                         }
@@ -232,7 +210,7 @@ impl AssemblyGenerator {
                             );
                         }
                         "pointer" => {
-                            instruction.push_str(Self::pop_from_stack().as_str()); // D=RAM[M] which is the value to be stored
+                            Self::pop_from_stack(); // D=RAM[M] which is the value to be stored
 
                             // 1. check if index 0 or 1
                             match index.as_str() {
@@ -251,31 +229,7 @@ impl AssemblyGenerator {
                                 _ => panic!("invalid pointer instruction"),
                             }
                         }
-                        "temp" => {
-                            instruction.push_str(Self::pop_from_stack().as_str());
-
-                            // should access i[0-7] RAM location
-                            let temp_base = 5;
-                            let temp_index = index.parse::<u8>().unwrap();
-
-                            assert!(temp_index < 8, "temp index must be between 0 and 7");
-
-                            instruction.push_str(format!("@{}\n", temp_base + temp_index).as_str());
-                            instruction.push_str("M=D\n");
-                        }
-                        "static" => {
-                            instruction.push_str(Self::pop_from_stack().as_str());
-
-                            // should access static i[16-255] RAM location
-                            let static_base = 16;
-                            let static_index = index.parse::<u8>().unwrap();
-
-                            assert!(static_index < 16, "static index must be between 16 and 255");
-
-                            instruction
-                                .push_str(format!("@{}\n", static_base + static_index).as_str());
-                            instruction.push_str("M=D\n");
-                        }
+                        "temp" => {}
                         _ => {
                             panic!("segment not valid");
                         }
@@ -290,44 +244,10 @@ impl AssemblyGenerator {
                 // if it's arithmetic, we only have one argument and we need to
                 // check what's the operation based on that
                 CommandType::CArithmetic => {
-                    let mut instruction = String::new();
                     let operation = reference_command.arg_1.as_ref().unwrap();
 
-                    match operation.as_str() {
-                        "add" => {
-                            // 1. pop value from stack
-                            // 2. pop value from stack
-                            // 3. add the two values
-                            instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=D+M\n");
-                            instruction.push_str(Self::push_latest_to_stack().as_str());
-                            instruction.push_str(Self::increase_stack().as_str());
-                        }
-                        "sub" => {
-                            // 1. pop value from stack
-                            // 2. pop value from stack
-                            // 3. subtract the two values
-                            instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=M-D\n");
-                            instruction.push_str(Self::push_latest_to_stack().as_str());
-                            instruction.push_str(Self::increase_stack().as_str());
-                        }
-                        "neg" => {}
-                        "eq" => {}
-                        "gt" => {}
-                        "lt" => {}
-                        "and" => {}
-                        "or" => {}
-                        "not" => {}
-                        _ => {
-                            panic!("{} implemented yet", operation);
-                        }
-                    }
-
                     instructions.push(AssemblyInstruction {
-                        instruction,
+                        instruction: format!("{} implemented yet", operation).to_string(),
                         command: reference_command,
                     });
                 }
@@ -374,7 +294,7 @@ mod tests {
     }
 
     #[test]
-    fn process_push_command() {
+    fn process_single_command_with_push() {
         // initialize a list of valid commands
         // push local 2
         let commands = vec![Command {
@@ -395,23 +315,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn should_fail_on_negative_index() {
-        // initialize a list of valid commands
-        // push local -2
-        let commands = vec![Command {
-            command_type: CommandType::CPush,
-            arg_1: Some("local".to_string()),
-            arg_2: Some("-2".to_string()),
-        }];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-    }
-
-    #[test]
-    fn process_pop_command() {
+    fn process_single_command_with_pop() {
         // initialize a list of valid commands
         // pop local 2
         let commands = vec![Command {
@@ -428,189 +332,6 @@ mod tests {
         assert_eq!(
             generator.instructions[0].instruction,
             "@LCL\nD=M\n@2\nD=D+A\n@R13\nM=D\n@SP\nM=M-1\nD=M\n@R13\nA=M\nM=D\n"
-        );
-    }
-
-    #[test]
-    fn process_push_static_command() {
-        // initialize a list of valid commands
-        // push static 2
-        let commands = vec![Command {
-            command_type: CommandType::CPush,
-            arg_1: Some("static".to_string()),
-            arg_2: Some("2".to_string()),
-        }];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 1);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@18\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-    }
-
-    #[test]
-    fn process_push_pointer_command() {
-        // initialize a list of valid commands
-        // push pointer 0
-        let commands = vec![Command {
-            command_type: CommandType::CPush,
-            arg_1: Some("pointer".to_string()),
-            arg_2: Some("0".to_string()),
-        }];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 1);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-    }
-
-    #[test]
-    fn process_push_temp_command() {
-        // initialize a list of valid commands
-        // push temp 2
-        let commands = vec![Command {
-            command_type: CommandType::CPush,
-            arg_1: Some("temp".to_string()),
-            arg_2: Some("2".to_string()),
-        }];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 1);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@7\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-    }
-
-    #[test]
-    fn process_pop_pointer_command() {
-        // initialize a list of valid commands
-        // pop pointer 0
-        let commands = vec![Command {
-            command_type: CommandType::CPop,
-            arg_1: Some("pointer".to_string()),
-            arg_2: Some("0".to_string()),
-        }];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 1);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@SP\nM=M-1\nD=M\n@THIS\nM=D\n"
-        );
-    }
-
-    #[test]
-    fn process_pop_temp_command() {
-        // initialize a list of valid commands
-        // pop temp 2
-        let commands = vec![Command {
-            command_type: CommandType::CPop,
-            arg_1: Some("temp".to_string()),
-            arg_2: Some("2".to_string()),
-        }];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 1);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@SP\nM=M-1\nD=M\n@7\nM=D\n"
-        );
-    }
-
-    #[test]
-    fn process_arithmetic_add_command() {
-        let commands = vec![
-            Command {
-                command_type: CommandType::CPush,
-                arg_1: Some("constant".to_string()),
-                arg_2: Some("7".to_string()),
-            },
-            Command {
-                command_type: CommandType::CPush,
-                arg_1: Some("constant".to_string()),
-                arg_2: Some("8".to_string()),
-            },
-            Command {
-                command_type: CommandType::CArithmetic,
-                arg_1: Some("add".to_string()),
-                arg_2: None,
-            },
-        ];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 3);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-        assert_eq!(
-            generator.instructions[1].instruction,
-            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-        assert_eq!(
-            generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D+M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-    }
-
-    #[test]
-    fn process_arithmetic_sub_command() {
-        let commands = vec![
-            Command {
-                command_type: CommandType::CPush,
-                arg_1: Some("constant".to_string()),
-                arg_2: Some("7".to_string()),
-            },
-            Command {
-                command_type: CommandType::CPush,
-                arg_1: Some("constant".to_string()),
-                arg_2: Some("8".to_string()),
-            },
-            Command {
-                command_type: CommandType::CArithmetic,
-                arg_1: Some("sub".to_string()),
-                arg_2: None,
-            },
-        ];
-
-        let mut generator = AssemblyGenerator::new();
-
-        generator.process_commands(&commands);
-
-        assert_eq!(generator.instructions.len(), 3);
-        assert_eq!(
-            generator.instructions[0].instruction,
-            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-        assert_eq!(
-            generator.instructions[1].instruction,
-            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-        assert_eq!(
-            generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 }
