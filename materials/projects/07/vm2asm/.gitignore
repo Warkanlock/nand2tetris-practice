@@ -34,3 +34,5 @@ Desktop.ini
 # Environment configuration files
 .env
 .env.local
+
+/tests
