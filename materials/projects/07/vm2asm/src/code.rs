@@ -314,13 +314,99 @@ impl AssemblyGenerator {
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
-                        "neg" => {}
-                        "eq" => {}
-                        "gt" => {}
-                        "lt" => {}
-                        "and" => {}
-                        "or" => {}
-                        "not" => {}
+                        "neg" => {
+                            // 1. pop value from stack
+                            // 2. negate the value
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("D=-D\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
+                        "eq" => {
+                            // 1. pop value from stack
+                            // 2. pop value from stack
+                            // 3. compare the two values
+                            // 4. if equal, push -1 to stack, else push 0
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
+                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("@EQ_TRUE\n");
+                            instruction.push_str("D;JEQ\n");
+                            instruction.push_str("D=0\n");
+                            instruction.push_str("@EQ_END\n");
+                            instruction.push_str("0;JMP\n");
+                            instruction.push_str("(EQ_TRUE)\n");
+                            instruction.push_str("D=-1\n");
+                            instruction.push_str("(EQ_END)\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
+                        "gt" => {
+                            // 1. pop value from stack
+                            // 2. pop value from stack
+                            // 3. compare the two values
+                            // 4. if greater, push -1 to stack, else push 0
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
+                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("@GT_TRUE\n");
+                            instruction.push_str("D;JGT\n");
+                            instruction.push_str("D=0\n");
+                            instruction.push_str("@GT_END\n");
+                            instruction.push_str("0;JMP\n");
+                            instruction.push_str("(GT_TRUE)\n");
+                            instruction.push_str("D=-1\n");
+                            instruction.push_str("(GT_END)\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
+                        "lt" => {
+                            // 1. pop value from stack
+                            // 2. pop value from stack
+                            // 3. compare the two values
+                            // 4. if less, push -1 to stack, else push 0
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
+                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("@LT_TRUE\n");
+                            instruction.push_str("D;JLT\n");
+                            instruction.push_str("D=0\n");
+                            instruction.push_str("@LT_END\n");
+                            instruction.push_str("0;JMP\n");
+                            instruction.push_str("(LT_TRUE)\n");
+                            instruction.push_str("D=-1\n");
+                            instruction.push_str("(LT_END)\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
+                        "and" => {
+                            // 1. pop value from stack
+                            // 2. pop value from stack
+                            // 3. and the two values
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
+                            instruction.push_str("D=D&M\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
+                        "or" => {
+                            // 1. pop value from stack
+                            // 2. pop value from stack
+                            // 3. or the two values
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
+                            instruction.push_str("D=D|M\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
+                        "not" => {
+                            // 1. pop value from stack
+                            // 2. not the value
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("D=!D\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                        }
                         _ => {
                             panic!("{} implemented yet", operation);
                         }
@@ -613,4 +699,260 @@ mod tests {
             "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
+
+    #[test]
+    fn process_arithmetic_neg_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("neg".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 2);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@SP\nM=M-1\nD=M\nD=-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
+    #[test]
+    fn process_arithmetic_eq_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("8".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("eq".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[2].instruction,
+            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@EQ_TRUE\nD;JEQ\nD=0\n@EQ_END\n0;JMP\n(EQ_TRUE)\nD=-1\n(EQ_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
+    #[test]
+    fn process_arithmetic_gt_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("8".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("gt".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[2].instruction,
+            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@GT_TRUE\nD;JGT\nD=0\n@GT_END\n0;JMP\n(GT_TRUE)\nD=-1\n(GT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
+    #[test]
+    fn process_arithmetic_lt_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("8".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("lt".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[2].instruction,
+            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@LT_TRUE\nD;JLT\nD=0\n@LT_END\n0;JMP\n(LT_TRUE)\nD=-1\n(LT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
+    #[test]
+    fn process_arithmetic_and_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("8".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("and".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[2].instruction,
+            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D&M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
+    #[test]
+    fn process_arithmetic_or_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("8".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("or".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[2].instruction,
+            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D|M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
+    #[test]
+    fn process_arithmetic_not_command() {
+        let commands = vec![
+            Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("7".to_string()),
+            },
+            Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("not".to_string()),
+                arg_2: None,
+            },
+        ];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 2);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+        assert_eq!(
+            generator.instructions[1].instruction,
+            "@SP\nM=M-1\nD=M\nD=!D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+        );
+    }
+
 }
