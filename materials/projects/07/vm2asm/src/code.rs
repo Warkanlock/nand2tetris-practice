@@ -79,6 +79,17 @@ impl AssemblyGenerator {
         instruction
     }
 
+    fn decrease_stack() -> String {
+        let mut instruction = String::new();
+
+        // decrease the stack in n-1
+        instruction.push_str("@SP\n");
+        instruction.push_str("A=M-1\n");
+
+        instruction
+    }
+
+
     fn pop_from_stack() -> String {
         let mut instruction = String::new();
 
@@ -103,6 +114,7 @@ impl AssemblyGenerator {
 
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
         let mut instructions: Vec<AssemblyInstruction> = Vec::new();
+        let mut index_label : u8 = 0;
 
         for command in commands.iter() {
             let reference_command = command.clone();
@@ -114,8 +126,8 @@ impl AssemblyGenerator {
                     let index = reference_command.arg_2.as_ref().unwrap();
 
                     assert!(
-                        index.parse::<u8>().is_ok(),
-                        "index must be a number u8 [unsigned integer]"
+                        index.parse::<u32>().is_ok(),
+                        "index must be a number u32 [unsigned integer]"
                     );
 
                     let mut instruction = String::new();
@@ -332,12 +344,15 @@ impl AssemblyGenerator {
                         "neg" => {
                             // 1. pop value from stack
                             // 2. negate the value
-                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
                             instruction.push_str("M=-M\n");
-                            instruction.push_str(Self::push_latest_to_stack().as_str());
-                            instruction.push_str(Self::increase_stack().as_str());
                         }
                         "eq" => {
+                            index_label += 1;
+                            let start_tag = format!("EQ_START_{}", index_label);
+                            index_label += 1;
+                            let end_tag = format!("EQ_END_{}", index_label);
+
                             // 1. pop value from stack
                             // 2. pop value from stack
                             // 3. compare the two values
@@ -347,19 +362,27 @@ impl AssemblyGenerator {
                             instruction.push_str(Self::pop_from_stack().as_str());
                             instruction.push_str("A=M\n");
                             instruction.push_str("D=A-D\n");
-                            instruction.push_str("@EQ_TRUE\n");
+                            instruction.push_str(format!("@{}\n", start_tag).as_str());
                             instruction.push_str("D;JEQ\n");
                             instruction.push_str("D=0\n");
-                            instruction.push_str("@EQ_END\n");
-                            instruction.push_str("0;JMP\n");
-                            instruction.push_str("(EQ_TRUE)\n");
-                            instruction.push_str("D=-1\n");
-                            instruction.push_str("(EQ_END)\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
+                            instruction.push_str(format!("@{}\n", end_tag).as_str());
+                            instruction.push_str("0;JMP\n");
+                            instruction.push_str(format!("({})\n", start_tag).as_str());
+                            instruction.push_str("D=-1\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                            instruction.push_str(format!("({})\n", end_tag).as_str());
                         }
                         "gt" => {
+                            index_label += 1;
+                            let start_tag = format!("GT_START_{}", index_label);
+                            index_label += 1;
+                            let end_tag = format!("GT_END_{}", index_label);
+                            
                             // 1. pop value from stack
+                            // 2. pop value from stack
                             // 3. compare the two values
                             // 4. if greater, push -1 to stack, else push 0
                             instruction.push_str(Self::pop_from_stack().as_str());
@@ -367,18 +390,27 @@ impl AssemblyGenerator {
                             instruction.push_str(Self::pop_from_stack().as_str());
                             instruction.push_str("A=M\n");
                             instruction.push_str("D=A-D\n");
-                            instruction.push_str("@GT_TRUE\n");
+
+                            instruction.push_str(format!("@{}\n", start_tag).as_str());
                             instruction.push_str("D;JGT\n");
                             instruction.push_str("D=0\n");
-                            instruction.push_str("@GT_END\n");
-                            instruction.push_str("0;JMP\n");
-                            instruction.push_str("(GT_TRUE)\n");
-                            instruction.push_str("D=-1\n");
-                            instruction.push_str("(GT_END)\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
+
+                            instruction.push_str(format!("@{}\n", end_tag).as_str());
+                            instruction.push_str("0;JMP\n");
+                            instruction.push_str(format!("({})\n", start_tag).as_str());
+                            instruction.push_str("D=-1\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                            instruction.push_str(format!("({})\n", end_tag).as_str());
                         }
                         "lt" => {
+                            index_label += 1;
+                            let start_tag = format!("LT_START_{}", index_label);
+                            index_label += 1;
+                            let end_tag = format!("LT_END_{}", index_label);
+
                             // 1. pop value from stack
                             // 3. compare the two values
                             // 4. if less, push -1 to stack, else push 0
@@ -387,16 +419,20 @@ impl AssemblyGenerator {
                             instruction.push_str(Self::pop_from_stack().as_str());
                             instruction.push_str("A=M\n");
                             instruction.push_str("D=A-D\n");
-                            instruction.push_str("@LT_TRUE\n");
+
+                            instruction.push_str(format!("@{}\n", start_tag).as_str());
                             instruction.push_str("D;JLT\n");
                             instruction.push_str("D=0\n");
-                            instruction.push_str("@LT_END\n");
-                            instruction.push_str("0;JMP\n");
-                            instruction.push_str("(LT_TRUE)\n");
-                            instruction.push_str("D=-1\n");
-                            instruction.push_str("(LT_END)\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
+
+                            instruction.push_str(format!("@{}\n", end_tag).as_str());
+                            instruction.push_str("0;JMP\n");
+                            instruction.push_str(format!("({})\n", start_tag).as_str());
+                            instruction.push_str("D=-1\n");
+                            instruction.push_str(Self::push_latest_to_stack().as_str());
+                            instruction.push_str(Self::increase_stack().as_str());
+                            instruction.push_str(format!("({})\n", end_tag).as_str());
                         }
                         "and" => {
                             // 1. pop value from stack
@@ -425,10 +461,8 @@ impl AssemblyGenerator {
                         "not" => {
                             // 1. pop value from stack
                             // 2. not the value
-                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str(Self::decrease_stack().as_str());
                             instruction.push_str("M=!M\n");
-                            instruction.push_str(Self::push_latest_to_stack().as_str());
-                            instruction.push_str(Self::increase_stack().as_str());
                         }
                         _ => {
                             panic!("{} implemented yet", operation);
@@ -759,7 +793,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[1].instruction,
-            "@SP\nAM=M-1\nM=-M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nA=M-1\nM=-M\n"
         );
     }
 
@@ -796,10 +830,6 @@ mod tests {
             generator.instructions[1].instruction,
             "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
-        assert_eq!(
-            generator.instructions[2].instruction,
-            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@EQ_TRUE\nD;JEQ\nD=0\n@EQ_END\n0;JMP\n(EQ_TRUE)\nD=-1\n(EQ_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
     }
 
     #[test]
@@ -835,10 +865,6 @@ mod tests {
             generator.instructions[1].instruction,
             "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
-        assert_eq!(
-            generator.instructions[2].instruction,
-            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@GT_TRUE\nD;JGT\nD=0\n@GT_END\n0;JMP\n(GT_TRUE)\nD=-1\n(GT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
     }
 
     #[test]
@@ -873,10 +899,6 @@ mod tests {
         assert_eq!(
             generator.instructions[1].instruction,
             "@8\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-        );
-        assert_eq!(
-            generator.instructions[2].instruction,
-            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@LT_TRUE\nD;JLT\nD=0\n@LT_END\n0;JMP\n(LT_TRUE)\nD=-1\n(LT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -984,7 +1006,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[1].instruction,
-            "@SP\nAM=M-1\nM=!M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nA=M-1\nM=!M\n"
         );
     }
 
