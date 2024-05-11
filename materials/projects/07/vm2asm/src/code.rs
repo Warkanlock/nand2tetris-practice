@@ -18,6 +18,16 @@ impl AssemblyGenerator {
         }
     }
 
+    fn add_infinite_loop() -> String {
+        let mut instruction = String::new();
+
+        instruction.push_str("(END)\n");
+        instruction.push_str("@END\n");
+        instruction.push_str("0;JMP\n");
+
+        instruction
+    }
+
     fn pick_cache(num: u8) -> String {
         let mut instruction = String::new();
 
@@ -49,15 +59,6 @@ impl AssemblyGenerator {
         instruction
     }
 
-    fn decrease_stack() -> String {
-        let mut instruction = String::new();
-
-        instruction.push_str("@SP\n");
-        instruction.push_str("M=M-1\n");
-
-        instruction
-    }
-
     fn push_latest_to(address: &str) -> String {
         let mut instruction = String::new();
 
@@ -82,10 +83,8 @@ impl AssemblyGenerator {
         let mut instruction = String::new();
 
         // decrease the stack in n-1
-        instruction.push_str(Self::decrease_stack().as_str());
-
-        // get the latest value at RAM[A] where A=SP
-        instruction.push_str("D=M\n");
+        instruction.push_str("@SP\n");
+        instruction.push_str("AM=M-1\n");
 
         instruction
     }
@@ -219,8 +218,8 @@ impl AssemblyGenerator {
                             instruction.push_str(Self::pick_cache(default_cache).as_str());
                             instruction.push_str("M=D\n");
 
-                            // decrease the stack
-                            instruction.push_str(Self::decrease_stack().as_str());
+                            // pop value from stack
+                            instruction.push_str(Self::pop_from_stack().as_str());
 
                             // get the latest value from the stack
                             instruction.push_str("D=M\n");
@@ -232,7 +231,11 @@ impl AssemblyGenerator {
                             );
                         }
                         "pointer" => {
-                            instruction.push_str(Self::pop_from_stack().as_str()); // D=RAM[M] which is the value to be stored
+                            // pop value from stack
+                            instruction.push_str(Self::pop_from_stack().as_str());
+
+                            // get the latest value from the stack
+                            instruction.push_str("D=M\n");
 
                             // 1. check if index 0 or 1
                             match index.as_str() {
@@ -252,7 +255,11 @@ impl AssemblyGenerator {
                             }
                         }
                         "temp" => {
+                            // pop value from stack
                             instruction.push_str(Self::pop_from_stack().as_str());
+
+                            // get the latest value from the stack
+                            instruction.push_str("D=M\n");
 
                             // should access i[0-7] RAM location
                             let temp_base = 5;
@@ -264,7 +271,11 @@ impl AssemblyGenerator {
                             instruction.push_str("M=D\n");
                         }
                         "static" => {
+                            // pop value from stack
                             instruction.push_str(Self::pop_from_stack().as_str());
+
+                            // get the latest value from the stack
+                            instruction.push_str("D=M\n");
 
                             // should access static i[16-255] RAM location
                             let static_base = 16;
@@ -299,8 +310,10 @@ impl AssemblyGenerator {
                             // 2. pop value from stack
                             // 3. add the two values
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=D+M\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=A+D\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
@@ -309,8 +322,10 @@ impl AssemblyGenerator {
                             // 2. pop value from stack
                             // 3. subtract the two values
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=A-D\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
@@ -318,7 +333,7 @@ impl AssemblyGenerator {
                             // 1. pop value from stack
                             // 2. negate the value
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str("D=-D\n");
+                            instruction.push_str("M=-M\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
@@ -328,8 +343,10 @@ impl AssemblyGenerator {
                             // 3. compare the two values
                             // 4. if equal, push -1 to stack, else push 0
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=A-D\n");
                             instruction.push_str("@EQ_TRUE\n");
                             instruction.push_str("D;JEQ\n");
                             instruction.push_str("D=0\n");
@@ -343,12 +360,13 @@ impl AssemblyGenerator {
                         }
                         "gt" => {
                             // 1. pop value from stack
-                            // 2. pop value from stack
                             // 3. compare the two values
                             // 4. if greater, push -1 to stack, else push 0
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=A-D\n");
                             instruction.push_str("@GT_TRUE\n");
                             instruction.push_str("D;JGT\n");
                             instruction.push_str("D=0\n");
@@ -362,12 +380,13 @@ impl AssemblyGenerator {
                         }
                         "lt" => {
                             // 1. pop value from stack
-                            // 2. pop value from stack
                             // 3. compare the two values
                             // 4. if less, push -1 to stack, else push 0
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=M-D\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=A-D\n");
                             instruction.push_str("@LT_TRUE\n");
                             instruction.push_str("D;JLT\n");
                             instruction.push_str("D=0\n");
@@ -384,8 +403,10 @@ impl AssemblyGenerator {
                             // 2. pop value from stack
                             // 3. and the two values
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=D&M\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=D&A\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
@@ -394,8 +415,10 @@ impl AssemblyGenerator {
                             // 2. pop value from stack
                             // 3. or the two values
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str(Self::decrease_stack().as_str());
-                            instruction.push_str("D=D|M\n");
+                            instruction.push_str("D=M\n");
+                            instruction.push_str(Self::pop_from_stack().as_str());
+                            instruction.push_str("A=M\n");
+                            instruction.push_str("D=D|A\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
@@ -403,7 +426,7 @@ impl AssemblyGenerator {
                             // 1. pop value from stack
                             // 2. not the value
                             instruction.push_str(Self::pop_from_stack().as_str());
-                            instruction.push_str("D=!D\n");
+                            instruction.push_str("M=!M\n");
                             instruction.push_str(Self::push_latest_to_stack().as_str());
                             instruction.push_str(Self::increase_stack().as_str());
                         }
@@ -419,6 +442,16 @@ impl AssemblyGenerator {
                 }
             }
         }
+
+        // add infinite loop to the end of the program
+        instructions.push(AssemblyInstruction {
+            instruction: Self::add_infinite_loop(),
+            command: Command {
+                command_type: CommandType::CArithmetic,
+                arg_1: Some("end".to_string()),
+                arg_2: None,
+            },
+        });
 
         self.instructions = instructions;
     }
@@ -456,7 +489,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
     }
 
     #[test]
@@ -473,7 +506,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
             "@2\nD=A\n@LCL\nA=D+A\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -510,10 +543,10 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
-            "@LCL\nD=M\n@2\nD=D+A\n@R13\nM=D\n@SP\nM=M-1\nD=M\n@R13\nA=M\nM=D\n"
+            "@LCL\nD=M\n@2\nD=D+A\n@R13\nM=D\n@SP\nAM=M-1\nD=M\n@R13\nA=M\nM=D\n"
         );
     }
 
@@ -531,7 +564,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
             "@18\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -552,7 +585,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
             "@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -573,7 +606,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -594,10 +627,10 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
-            "@SP\nM=M-1\nD=M\n@THIS\nM=D\n"
+            "@SP\nAM=M-1\nD=M\n@THIS\nM=D\n"
         );
     }
 
@@ -615,10 +648,10 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(generator.instructions.len(), 2);
         assert_eq!(
             generator.instructions[0].instruction,
-            "@SP\nM=M-1\nD=M\n@7\nM=D\n"
+            "@SP\nAM=M-1\nD=M\n@7\nM=D\n"
         );
     }
 
@@ -646,7 +679,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -657,7 +690,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D+M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A+D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -685,7 +718,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -696,7 +729,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -719,14 +752,14 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 2);
+        assert_eq!(generator.instructions.len(), 3);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
         assert_eq!(
             generator.instructions[1].instruction,
-            "@SP\nM=M-1\nD=M\nD=-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nM=-M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -754,7 +787,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -765,7 +798,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@EQ_TRUE\nD;JEQ\nD=0\n@EQ_END\n0;JMP\n(EQ_TRUE)\nD=-1\n(EQ_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@EQ_TRUE\nD;JEQ\nD=0\n@EQ_END\n0;JMP\n(EQ_TRUE)\nD=-1\n(EQ_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -793,7 +826,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -804,7 +837,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@GT_TRUE\nD;JGT\nD=0\n@GT_END\n0;JMP\n(GT_TRUE)\nD=-1\n(GT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@GT_TRUE\nD;JGT\nD=0\n@GT_END\n0;JMP\n(GT_TRUE)\nD=-1\n(GT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -832,7 +865,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -843,7 +876,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@LT_TRUE\nD;JLT\nD=0\n@LT_END\n0;JMP\n(LT_TRUE)\nD=-1\n(LT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=A-D\n@LT_TRUE\nD;JLT\nD=0\n@LT_END\n0;JMP\n(LT_TRUE)\nD=-1\n(LT_END)\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -871,7 +904,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -882,7 +915,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D&M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=D&A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -910,7 +943,7 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 3);
+        assert_eq!(generator.instructions.len(), 4);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
@@ -921,7 +954,7 @@ mod tests {
         );
         assert_eq!(
             generator.instructions[2].instruction,
-            "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D|M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nD=M\n@SP\nAM=M-1\nA=M\nD=D|A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
@@ -944,15 +977,29 @@ mod tests {
 
         generator.process_commands(&commands);
 
-        assert_eq!(generator.instructions.len(), 2);
+        assert_eq!(generator.instructions.len(), 3);
         assert_eq!(
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
         assert_eq!(
             generator.instructions[1].instruction,
-            "@SP\nM=M-1\nD=M\nD=!D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
+            "@SP\nAM=M-1\nM=!M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
     }
 
+    #[test]
+    fn process_infinite_loop() {
+        let commands = vec![];
+
+        let mut generator = AssemblyGenerator::new();
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 1);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "(END)\n@END\n0;JMP\n"
+        );
+    }
 }

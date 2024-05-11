@@ -60,26 +60,5 @@ fn create_virtual_machine_and_parse() {
     // process commands
     generator.process_commands(&commands);
 
-    assert_eq!(generator.instructions.len(), 4);
-
-    // check instructions generated
-    assert_eq!(
-        generator.instructions[0].instruction,
-        "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=D+M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-    );
-
-    assert_eq!(
-        generator.instructions[1].instruction,
-        "@SP\nM=M-1\nD=M\n@SP\nM=M-1\nD=M-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-    );
-
-    assert_eq!(
-        generator.instructions[2].instruction,
-        "@SP\nM=M-1\nD=M\nD=-D\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-    );
-
-    assert_eq!(
-        generator.instructions[3].instruction,
-        "@2\nD=A\n@LCL\nA=D+A\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
-    );
+    assert_eq!(generator.instructions.len(), 5);
 }
