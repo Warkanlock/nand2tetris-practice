@@ -15,7 +15,7 @@ fn create_virtual_machine_and_parse() {
 
     let base_name: String = parser.get_base_name();
 
-    assert_eq!(base_name, utils::capitalize("root", 1));
+    assert_eq!(base_name, utils::capitalize_n_letters("root", 1));
 
     // check the commands
     assert_eq!(commands.len(), 4);

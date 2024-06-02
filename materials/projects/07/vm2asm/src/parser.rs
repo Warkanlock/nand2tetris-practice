@@ -45,7 +45,7 @@ impl Parser {
         }
 
         // return the name_assigned capitalize on the first letter
-        return utils::capitalize(&name_assigned, 1);
+        return utils::capitalize_n_letters(&name_assigned, 1);
     }
 
     fn _parse_simple(&mut self) {

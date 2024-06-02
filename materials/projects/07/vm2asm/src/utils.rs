@@ -102,24 +102,26 @@ pub fn get_inputs_from_path(path: &str) -> Vec<String> {
     inputs
 }
 
-/// Capitalizes the first letter of a string.
-///     
+/// Capitalizes n letter of a string
+///
 /// # Arguments
 ///
 /// * `input` - The input string to capitalize.
+/// * `n` - The number of letters to capitalize.
 ///
 /// # Returns
 ///
 /// * A string with the first letter capitalized.
-pub fn capitalize(input: &str, window : u8) -> String {
+pub fn capitalize_n_letters(input: &str, n: usize) -> String {
     let mut chars = input.chars();
+    let mut result = String::new();
 
-    for (i, n) in chars.by_ref().enumerate() {
-        if i + 1 == window as usize {
-            return n.to_uppercase().collect::<String>() + chars.as_str();
+    for _ in 0..n {
+        match chars.next() {
+            None => break,
+            Some(f) => result.push_str(&f.to_uppercase().collect::<String>()),
         }
     }
-    
-    input.to_string()
-}
 
+    result + chars.as_str()
+}
