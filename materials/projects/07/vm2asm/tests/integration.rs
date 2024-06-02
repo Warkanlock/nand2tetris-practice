@@ -1,15 +1,21 @@
+use vm2asm::utils;
+
 #[test]
 fn create_virtual_machine_and_parse() {
     vm2asm::logs::log_command("create_virtual_machine_and_parse");
 
     // create a new virtual machine
-    let mut parser = vm2asm::parser::Parser::new("add\nsub\nneg\npush local 2");
+    let mut parser = vm2asm::parser::Parser::new("add\nsub\nneg\npush local 2", "");
 
     // parse the virtual machine
     parser.parse();
 
     // get the commands
     let commands = parser.get_fields();
+
+    let base_name: String = parser.get_base_name();
+
+    assert_eq!(base_name, utils::capitalize("root", 1));
 
     // check the commands
     assert_eq!(commands.len(), 4);

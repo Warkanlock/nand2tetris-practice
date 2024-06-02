@@ -101,3 +101,25 @@ pub fn get_inputs_from_path(path: &str) -> Vec<String> {
 
     inputs
 }
+
+/// Capitalizes the first letter of a string.
+///     
+/// # Arguments
+///
+/// * `input` - The input string to capitalize.
+///
+/// # Returns
+///
+/// * A string with the first letter capitalized.
+pub fn capitalize(input: &str, window : u8) -> String {
+    let mut chars = input.chars();
+
+    for (i, n) in chars.by_ref().enumerate() {
+        if i + 1 == window as usize {
+            return n.to_uppercase().collect::<String>() + chars.as_str();
+        }
+    }
+    
+    input.to_string()
+}
+

@@ -1,4 +1,4 @@
-use crate::logs::{log_info, log_success};
+use crate::{logs::{log_info, log_success}, utils};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum CommandType {
@@ -21,6 +21,7 @@ pub struct Command {
 pub struct Parser {
     pub commands: Vec<Command>,
     pub input: String,
+    class_name: String,
 }
 
 impl Parser {
@@ -28,11 +29,23 @@ impl Parser {
         &self.commands
     }
 
-    pub fn new(input: &str) -> Self {
+    pub fn new(input: &str, class_name: &str) -> Self {
         Self {
             commands: Vec::new(),
             input: input.to_string(),
+            class_name: class_name.to_string(),
         }
+    }
+
+    pub fn get_base_name(&self) -> String {
+        let name_assigned = &self.class_name;
+
+        if name_assigned.is_empty() {
+            return "Root".to_string();
+        }
+
+        // return the name_assigned capitalize on the first letter
+        return utils::capitalize(&name_assigned, 1);
     }
 
     fn _parse_simple(&mut self) {
@@ -130,22 +143,23 @@ mod tests {
     #[test]
     fn init_parser() {
         let input = "push constant 7";
-        let parser = Parser::new(input);
+        let parser = Parser::new(input, "");
 
         assert_eq!(parser.input, input);
         assert_eq!(parser.commands.len(), 0);
+        assert_eq!(parser.get_base_name(), "Root");
     }
 
     #[test]
     fn get_parser_commands() {
-        let parser = Parser::new("");
+        let parser = Parser::new("", "");
 
         assert_eq!(parser.get_fields(), &Vec::new());
     }
 
     #[test]
     fn should_discard_empty_lines() {
-        let mut parser = Parser::new("\n\n\n");
+        let mut parser = Parser::new("\n\n\n", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 0);
@@ -153,7 +167,7 @@ mod tests {
 
     #[test]
     fn parse_push_command() {
-        let mut parser = Parser::new("push constant 7");
+        let mut parser = Parser::new("push constant 7", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -169,7 +183,7 @@ mod tests {
 
     #[test]
     fn parse_pop_command() {
-        let mut parser = Parser::new("pop local 0");
+        let mut parser = Parser::new("pop local 0", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -185,7 +199,7 @@ mod tests {
 
     #[test]
     fn parse_mutliple_commands() {
-        let mut parser = Parser::new("push constant 7\npop local 0");
+        let mut parser = Parser::new("push constant 7\npop local 0", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 2);
@@ -209,7 +223,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_arithmetic_commands() {
-        let mut parser = Parser::new("add\nsub\n");
+        let mut parser = Parser::new("add\nsub\n", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 2);
@@ -233,7 +247,7 @@ mod tests {
 
     #[test]
     fn parse_arithmetic_command() {
-        let mut parser = Parser::new("add");
+        let mut parser = Parser::new("add", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -250,7 +264,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Input should be defined before trying to parse")]
     fn fail_at_parsing_empty_input() {
-        let mut parser = Parser::new("");
+        let mut parser = Parser::new("", "");
         parser.parse();
     }
 }

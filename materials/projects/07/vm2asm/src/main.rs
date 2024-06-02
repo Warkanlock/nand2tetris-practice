@@ -1,5 +1,6 @@
 use clap::Parser as ClapParser;
 use logs::log_command;
+use std::path::Path;
 
 // module definitions
 mod code;
@@ -32,7 +33,7 @@ pub fn main() {
 
     // print headers of the program
     utils::header_info(app_name, version, &input);
-    
+
     // get inputs from path
     let inputs = utils::get_inputs_from_path(&input);
 
@@ -43,8 +44,14 @@ pub fn main() {
         // read the contents of the input file to be translated to commands
         let input_content = utils::read_file(&input);
 
-        // initialize the parser
-        let mut parser = parser::Parser::new(&input_content);
+        // get filename instead of filepath
+        let input_file = Path::new(&input)
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("");
+
+        // initialize the parser with class_name and content
+        let mut parser = parser::Parser::new(&input_content, &input_file);
 
         // parse input
         parser.parse();
@@ -61,8 +68,10 @@ pub fn main() {
         // get the assembly instructions
         for instruction in generator.instructions.iter() {
             log_command(&format!(
-                "{:?} from {:?}",
-                instruction.instruction, instruction.command
+                "{:?} >> {:?} from {:?}",
+                parser.get_base_name(),
+                instruction.instruction,
+                instruction.command
             ));
         }
 
