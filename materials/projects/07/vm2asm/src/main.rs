@@ -32,30 +32,44 @@ pub fn main() {
 
     // print headers of the program
     utils::header_info(app_name, version, &input);
+    
+    // get inputs from path
+    let inputs = utils::get_inputs_from_path(&input);
 
-    // read the contents of the input file
-    let input_content = utils::read_file(&input);
+    // vector to store all the instrcutions across the files
+    let mut instructions = Vec::new();
 
-    // initialize the parser
-    let mut parser = parser::Parser::new(&input_content);
+    for input in inputs {
+        // read the contents of the input file to be translated to commands
+        let input_content = utils::read_file(&input);
 
-    // parse input
-    parser.parse();
+        // initialize the parser
+        let mut parser = parser::Parser::new(&input_content);
 
-    // get the commands
-    let commands = parser.get_fields();
+        // parse input
+        parser.parse();
 
-    // generate assembly generator
-    let mut generator = code::AssemblyGenerator::new();
+        // get the commands
+        let commands = parser.get_fields();
 
-    // generate assembly instructions from commands
-    generator.process_commands(&commands);
+        // generate assembly generator
+        let mut generator = code::AssemblyGenerator::new();
 
-    // get the assembly instructions
-    for instruction in generator.instructions.iter() {
-        log_command(&format!("{:?} from {:?}", instruction.instruction, instruction.command));
+        // generate assembly instructions from commands
+        generator.process_commands(&commands);
+
+        // get the assembly instructions
+        for instruction in generator.instructions.iter() {
+            log_command(&format!(
+                "{:?} from {:?}",
+                instruction.instruction, instruction.command
+            ));
+        }
+
+        // add isntructions into instructions vector
+        instructions.extend(generator.instructions_to_bytes());
     }
 
-    // save the output
-    utils::save_file(&output, &generator.instructions_to_bytes());
+    // save the output of all the instructions
+    utils::save_file(&output, &instructions);
 }

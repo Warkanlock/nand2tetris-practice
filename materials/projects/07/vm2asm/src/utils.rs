@@ -1,6 +1,7 @@
+use std::fs::read_dir;
 use std::io::Write;
 
-use crate::logs::{log_info, log_success};
+use crate::logs::{log_error, log_info, log_success};
 
 /// Creates a divider line in the console output.
 ///
@@ -52,4 +53,51 @@ pub fn save_file(output: &str, content: &Vec<u8>) {
     }
 
     log_success(format!("file saved: {}", output).as_str());
+}
+
+/// Gets the inputs from a path.
+///
+/// # Arguments
+///
+/// * `path` - The path to get inputs from.
+///
+/// # Returns
+///
+/// * A vector of strings containing the inputs.
+pub fn get_inputs_from_path(path: &str) -> Vec<String> {
+    let mut inputs: Vec<String> = Vec::new();
+
+    // read input and assess if it's a file or a folder
+    if path.ends_with(".vm") {
+        inputs.push(path.to_string());
+    } else {
+        // read content of the folder under input and get all .vm files
+        let files = read_dir(&path);
+
+        // match and assess if the directory is readable
+        match files {
+            Ok(files) => {
+                // add all .vm files to the inputs
+                for entry in files {
+                    match entry {
+                        Ok(file) => {
+                            let file_name = file.path().display().to_string();
+
+                            if file_name.ends_with(".vm") {
+                                inputs.push(file_name);
+                            }
+                        }
+                        Err(e) => {
+                            log_error(format!("failed to read file: {:?}", e).as_str());
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                log_error(format!("failed to read directory: {:?}", e).as_str());
+            }
+        }
+    }
+
+    inputs
 }
