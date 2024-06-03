@@ -6,10 +6,12 @@ pub enum CommandType {
     CPush,
     CPop,
     CBoostrap,
-    // CIf,
-    // CFunction,
-    // CReturn,
+    CFunction,
+    CReturn,
     CCall,
+    CLabel,
+    CGoto,
+    CIf,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -17,6 +19,7 @@ pub struct Command {
     pub arg_1: Option<String>,
     pub arg_2: Option<String>, // only for push, pop, function, call
     pub command_type: CommandType,
+    pub classname: Option<String>,
 }
 
 pub struct Parser {
@@ -51,6 +54,7 @@ impl Parser {
 
     fn _parse_simple(&mut self) {
         log_info("Parsing input file");
+        log_info(format!("Class name: {:?}", self.get_base_name()).as_str());
 
         // should parse input and get commands into self.commands vector
         for line in self.input.lines() {
@@ -69,56 +73,103 @@ impl Parser {
                     command_type: CommandType::CPush,
                     arg_1: Some(line_parts[1].to_string()),
                     arg_2: Some(line_parts[2].to_string()),
+                    classname: None,
                 }),
                 Some(&"pop") => self.commands.push(Command {
                     command_type: CommandType::CPop,
                     arg_1: Some(line_parts[1].to_string()),
                     arg_2: Some(line_parts[2].to_string()),
+                    classname: None,
                 }),
                 Some(&"add") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("add".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"sub") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("sub".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"eq") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("eq".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"lt") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("lt".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"gt") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("gt".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"neg") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("neg".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"and") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("and".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"or") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("or".to_string()),
                     arg_2: None,
+                    classname: None,
                 }),
                 Some(&"not") => self.commands.push(Command {
                     command_type: CommandType::CArithmetic,
                     arg_1: Some("not".to_string()),
                     arg_2: None,
+                    classname: None,
+                }),
+                Some(&"label") => self.commands.push(Command {
+                    command_type: CommandType::CLabel,
+                    arg_1: Some(line_parts[1].to_string()),
+                    arg_2: None,
+                    classname: Some(self.get_base_name()),
+                }),
+                Some(&"if-goto") => self.commands.push(Command {
+                    command_type: CommandType::CIf,
+                    arg_1: Some(line_parts[1].to_string()),
+                    arg_2: None,
+                    classname: Some(self.get_base_name()),
+                }),
+                Some(&"goto") => self.commands.push(Command {
+                    command_type: CommandType::CGoto,
+                    arg_1: Some(line_parts[1].to_string()),
+                    arg_2: None,
+                    classname: Some(self.get_base_name()),
+                }),
+                Some(&"call") => self.commands.push(Command {
+                    command_type: CommandType::CCall,
+                    arg_1: Some(line_parts[1].to_string()), // function name
+                    arg_2: Some(line_parts[2].to_string()), // args
+                    classname: Some(self.get_base_name()),
+                }),
+                Some(&"function") => self.commands.push(Command {
+                    command_type: CommandType::CFunction,
+                    arg_1: Some(line_parts[1].to_string()), // function name
+                    arg_2: Some(line_parts[2].to_string()), // vars
+                    classname: Some(self.get_base_name()),
+                }),
+                Some(&"return") => self.commands.push(Command {
+                    command_type: CommandType::CReturn,
+                    arg_1: None,
+                    arg_2: None,
+                    classname: Some(self.get_base_name()),
                 }),
                 _ => continue,
             };
@@ -177,7 +228,8 @@ mod tests {
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
-                arg_2: Some("7".to_string())
+                arg_2: Some("7".to_string()),
+                classname: None,
             }
         );
     }
@@ -193,7 +245,8 @@ mod tests {
             Command {
                 command_type: CommandType::CPop,
                 arg_1: Some("local".to_string()),
-                arg_2: Some("0".to_string())
+                arg_2: Some("0".to_string()),
+                classname: None,
             }
         );
     }
@@ -209,7 +262,8 @@ mod tests {
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
-                arg_2: Some("7".to_string())
+                arg_2: Some("7".to_string()),
+                classname: None,
             }
         );
         assert_eq!(
@@ -217,7 +271,8 @@ mod tests {
             Command {
                 command_type: CommandType::CPop,
                 arg_1: Some("local".to_string()),
-                arg_2: Some("0".to_string())
+                arg_2: Some("0".to_string()),
+                classname: None,
             }
         );
     }
@@ -233,7 +288,8 @@ mod tests {
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("add".to_string()),
-                arg_2: None
+                arg_2: None,
+                classname: None,
             }
         );
         assert_eq!(
@@ -241,7 +297,93 @@ mod tests {
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("sub".to_string()),
-                arg_2: None
+                arg_2: None,
+                classname: None,
+            }
+        );
+    }
+
+    #[test]
+    fn parse_label_command() {
+        let mut parser = Parser::new("label LOOP_START", "");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 1);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CLabel,
+                arg_1: Some("LOOP_START".to_string()),
+                arg_2: None,
+                classname: Some("Root".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_if_goto_command() {
+        let mut parser = Parser::new("if-goto LOOP_START", "");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 1);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CIf,
+                arg_1: Some("LOOP_START".to_string()),
+                arg_2: None,
+                classname: Some("Root".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_goto_command() {
+        let mut parser = Parser::new("goto LOOP_START", "");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 1);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CGoto,
+                arg_1: Some("LOOP_START".to_string()),
+                arg_2: None,
+                classname: Some("Root".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_call_command() {
+        let mut parser = Parser::new("call function 2", "test");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 1);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CCall,
+                arg_1: Some("function".to_string()),
+                arg_2: Some("2".to_string()),
+                classname: Some("Test".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_function_command() {
+        let mut parser = Parser::new("function hello 2", "test");
+        parser.parse();
+
+        assert_eq!(parser.commands.len(), 1);
+        assert_eq!(
+            parser.commands[0],
+            Command {
+                command_type: CommandType::CFunction,
+                arg_1: Some("hello".to_string()),
+                arg_2: Some("2".to_string()),
+                classname: Some("Test".to_string()),
             }
         );
     }
@@ -257,7 +399,8 @@ mod tests {
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("add".to_string()),
-                arg_2: None
+                arg_2: None,
+                classname: None,
             }
         );
     }

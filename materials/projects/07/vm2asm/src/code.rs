@@ -9,37 +9,15 @@ pub struct AssemblyInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AssemblyGenerator {
     pub instructions: Vec<AssemblyInstruction>,
+    pub should_bootstrap: bool,
 }
 
 impl AssemblyGenerator {
     pub fn new(boostrap: bool) -> Self {
-        if boostrap {
-            let mut instructions = Vec::new();
-
-            instructions.push(AssemblyInstruction {
-                instruction: Self::move_stack_point_to(256),
-                command: Command {
-                    command_type: CommandType::CBoostrap,
-                    arg_1: None,
-                    arg_2: None,
-                },
-            });
-
-            instructions.push(AssemblyInstruction {
-                instruction: Self::call("Sys.init"),
-                command: Command {
-                    command_type: CommandType::CCall,
-                    arg_1: None,
-                    arg_2: None,
-                },
-            });
-
-            return Self { instructions };
-        }
-
         // no boostrap code
         Self {
             instructions: Vec::new(),
+            should_bootstrap: boostrap,
         }
     }
 
@@ -154,6 +132,32 @@ impl AssemblyGenerator {
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
         let mut instructions: Vec<AssemblyInstruction> = Vec::new();
         let mut index_label: u8 = 0;
+
+        // if bootstrap is enabled, we need to add the bootstrap code
+        // to the instructions
+        // 1. move stack pointer to 256
+        // 2. call Sys.init
+        if self.should_bootstrap {
+            instructions.push(AssemblyInstruction {
+                instruction: Self::move_stack_point_to(256),
+                command: Command {
+                    command_type: CommandType::CBoostrap,
+                    arg_1: None,
+                    arg_2: None,
+                    classname: None,
+                },
+            });
+
+            instructions.push(AssemblyInstruction {
+                instruction: Self::call("Sys.init"),
+                command: Command {
+                    command_type: CommandType::CCall,
+                    arg_1: None,
+                    arg_2: None,
+                    classname: None,
+                },
+            });
+        }
 
         for command in commands.iter() {
             let reference_command = command.clone();
@@ -512,9 +516,14 @@ impl AssemblyGenerator {
                         instruction,
                         command: reference_command,
                     });
-                },
+                }
+                CommandType::CLabel => panic!("not implemented yet"),
                 CommandType::CCall => panic!("not implemented yet"),
                 CommandType::CBoostrap => panic!("not implemented yet"),
+                CommandType::CIf => panic!("not implemented yet"),
+                CommandType::CGoto => panic!("not implemented yet"),
+                CommandType::CFunction => panic!("not implemented yet"),
+                CommandType::CReturn => panic!("not implemented yet"),
             }
         }
 
@@ -525,6 +534,7 @@ impl AssemblyGenerator {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("end".to_string()),
                 arg_2: None,
+                classname: None,
             },
         });
 
@@ -547,16 +557,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("local".to_string()),
                 arg_2: Some("2".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("local".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("add".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -575,6 +588,7 @@ mod tests {
             command_type: CommandType::CPush,
             arg_1: Some("local".to_string()),
             arg_2: Some("2".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -597,6 +611,7 @@ mod tests {
             command_type: CommandType::CPush,
             arg_1: Some("local".to_string()),
             arg_2: Some("-2".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -612,6 +627,7 @@ mod tests {
             command_type: CommandType::CPop,
             arg_1: Some("local".to_string()),
             arg_2: Some("2".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -633,6 +649,7 @@ mod tests {
             command_type: CommandType::CPush,
             arg_1: Some("static".to_string()),
             arg_2: Some("2".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -654,6 +671,7 @@ mod tests {
             command_type: CommandType::CPush,
             arg_1: Some("pointer".to_string()),
             arg_2: Some("0".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -675,6 +693,7 @@ mod tests {
             command_type: CommandType::CPush,
             arg_1: Some("temp".to_string()),
             arg_2: Some("2".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -696,6 +715,7 @@ mod tests {
             command_type: CommandType::CPop,
             arg_1: Some("pointer".to_string()),
             arg_2: Some("0".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -717,6 +737,7 @@ mod tests {
             command_type: CommandType::CPop,
             arg_1: Some("temp".to_string()),
             arg_2: Some("2".to_string()),
+            classname: None,
         }];
 
         let mut generator = AssemblyGenerator::new(false);
@@ -737,16 +758,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("add".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -776,16 +800,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("sub".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -815,11 +842,13 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("neg".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -842,16 +871,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("eq".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -877,16 +909,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("gt".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -912,16 +947,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("lt".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -947,16 +985,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("and".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -986,16 +1027,19 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("8".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("or".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 
@@ -1025,11 +1069,13 @@ mod tests {
                 command_type: CommandType::CPush,
                 arg_1: Some("constant".to_string()),
                 arg_2: Some("7".to_string()),
+                classname: None,
             },
             Command {
                 command_type: CommandType::CArithmetic,
                 arg_1: Some("not".to_string()),
                 arg_2: None,
+                classname: None,
             },
         ];
 

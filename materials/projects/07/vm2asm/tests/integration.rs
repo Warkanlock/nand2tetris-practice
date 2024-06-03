@@ -26,7 +26,8 @@ fn create_virtual_machine_and_parse() {
         vm2asm::parser::Command {
             command_type: vm2asm::parser::CommandType::CArithmetic,
             arg_1: Some("add".to_string()),
-            arg_2: None
+            arg_2: None,
+            classname: None,
         }
     );
 
@@ -36,7 +37,8 @@ fn create_virtual_machine_and_parse() {
         vm2asm::parser::Command {
             command_type: vm2asm::parser::CommandType::CArithmetic,
             arg_1: Some("sub".to_string()),
-            arg_2: None
+            arg_2: None,
+            classname: None,
         }
     );
 
@@ -46,7 +48,8 @@ fn create_virtual_machine_and_parse() {
         vm2asm::parser::Command {
             command_type: vm2asm::parser::CommandType::CArithmetic,
             arg_1: Some("neg".to_string()),
-            arg_2: None
+            arg_2: None,
+            classname: None,
         }
     );
 
@@ -56,7 +59,8 @@ fn create_virtual_machine_and_parse() {
         vm2asm::parser::Command {
             command_type: vm2asm::parser::CommandType::CPush,
             arg_1: Some("local".to_string()),
-            arg_2: Some("2".to_string())
+            arg_2: Some("2".to_string()),
+            classname: None,
         }
     );
 
