@@ -28,7 +28,7 @@ pub struct Parser {
     pub commands: Vec<Command>,
     pub input: String,
     filename: String,
-    boostrap: bool,
+    bootstrap: bool,
 }
 
 impl Parser {
@@ -36,12 +36,12 @@ impl Parser {
         &self.commands
     }
 
-    pub fn new(input: &str, filename: &str, boostrap: bool) -> Self {
+    pub fn new(input: &str, filename: &str, bootstrap: bool) -> Self {
         Self {
             commands: Vec::new(),
             input: input.to_string(),
             filename: filename.to_string(),
-            boostrap,
+            bootstrap,
         }
     }
 
@@ -60,39 +60,30 @@ impl Parser {
         log_info("Parsing input file");
         log_info(format!("Class name: {:?}", self.get_base_name()).as_str());
 
+        if self.bootstrap {
+            // push constant 256
+            self.commands.push(Command {
+                command_type: CommandType::CPush,
+                arg_1: Some("constant".to_string()),
+                arg_2: Some("256".to_string()),
+                classname: None,
+            });
+
+            // call Sys.init 0
+            self.commands.push(Command {
+                command_type: CommandType::CCall,
+                arg_1: Some("Sys.init".to_string()),
+                arg_2: Some("0".to_string()),
+                classname: None,
+            });
+        }
+
         // should parse input and get commands into self.commands vector
         for line in self.input.lines() {
             // discard empty lines
             let line = line.trim();
             if line.is_empty() || line.starts_with("//") {
                 continue;
-            }
-
-            // if bootstrap is enabled we should
-            if self.boostrap {
-                // push constant 256
-                self.commands.push(Command {
-                    command_type: CommandType::CPush,
-                    arg_1: Some("constant".to_string()),
-                    arg_2: Some("256".to_string()),
-                    classname: None,
-                });
-
-                // pop pointer 0
-                self.commands.push(Command {
-                    command_type: CommandType::CPop,
-                    arg_1: Some("pointer".to_string()),
-                    arg_2: Some("0".to_string()),
-                    classname: None,
-                });
-
-                // call Sys.init 0
-                self.commands.push(Command {
-                    command_type: CommandType::CCall,
-                    arg_1: Some("Sys.init".to_string()),
-                    arg_2: Some("0".to_string()),
-                    classname: None,
-                });
             }
 
             // we should split spaces in line
