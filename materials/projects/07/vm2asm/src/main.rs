@@ -1,4 +1,5 @@
 use clap::Parser as ClapParser;
+use code::AssemblyConfiguration;
 use logs::log_command;
 use std::path::Path;
 
@@ -56,7 +57,7 @@ pub fn main() {
             .unwrap_or("");
 
         // initialize the parser with class_name and content
-        let mut parser = parser::Parser::new(&input_content, &input_file, bootstrap);
+        let mut parser = parser::Parser::new(&input_content, &input_file);
 
         // parse input
         parser.parse();
@@ -65,7 +66,7 @@ pub fn main() {
         let commands = parser.get_fields();
 
         // generate assembly generator
-        let mut generator = code::AssemblyGenerator::new();
+        let mut generator = code::AssemblyGenerator::new(AssemblyConfiguration { bootstrap });
 
         // generate assembly instructions from commands
         generator.process_commands(&commands);

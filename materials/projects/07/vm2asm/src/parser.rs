@@ -28,7 +28,6 @@ pub struct Parser {
     pub commands: Vec<Command>,
     pub input: String,
     filename: String,
-    bootstrap: bool,
 }
 
 impl Parser {
@@ -36,12 +35,11 @@ impl Parser {
         &self.commands
     }
 
-    pub fn new(input: &str, filename: &str, bootstrap: bool) -> Self {
+    pub fn new(input: &str, filename: &str) -> Self {
         Self {
             commands: Vec::new(),
             input: input.to_string(),
             filename: filename.to_string(),
-            bootstrap,
         }
     }
 
@@ -59,24 +57,6 @@ impl Parser {
     fn _parse_simple(&mut self) {
         log_info("Parsing input file");
         log_info(format!("Class name: {:?}", self.get_base_name()).as_str());
-
-        if self.bootstrap {
-            // push constant 256
-            self.commands.push(Command {
-                command_type: CommandType::CPush,
-                arg_1: Some("constant".to_string()),
-                arg_2: Some("256".to_string()),
-                classname: None,
-            });
-
-            // call Sys.init 0
-            self.commands.push(Command {
-                command_type: CommandType::CCall,
-                arg_1: Some("Sys.init".to_string()),
-                arg_2: Some("0".to_string()),
-                classname: None,
-            });
-        }
 
         // should parse input and get commands into self.commands vector
         for line in self.input.lines() {
@@ -217,7 +197,7 @@ mod tests {
     #[test]
     fn init_parser() {
         let input = "push constant 7";
-        let parser = Parser::new(input, "", false);
+        let parser = Parser::new(input, "");
 
         assert_eq!(parser.input, input);
         assert_eq!(parser.commands.len(), 0);
@@ -226,14 +206,14 @@ mod tests {
 
     #[test]
     fn get_parser_commands() {
-        let parser = Parser::new("", "", false);
+        let parser = Parser::new("", "");
 
         assert_eq!(parser.get_fields(), &Vec::new());
     }
 
     #[test]
     fn should_discard_empty_lines() {
-        let mut parser = Parser::new("\n\n\n", "", false);
+        let mut parser = Parser::new("\n\n\n", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 0);
@@ -241,7 +221,7 @@ mod tests {
 
     #[test]
     fn parse_push_command() {
-        let mut parser = Parser::new("push constant 7", "", false);
+        let mut parser = Parser::new("push constant 7", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -258,7 +238,7 @@ mod tests {
 
     #[test]
     fn parse_pop_command() {
-        let mut parser = Parser::new("pop local 0", "", false);
+        let mut parser = Parser::new("pop local 0", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -275,7 +255,7 @@ mod tests {
 
     #[test]
     fn parse_mutliple_commands() {
-        let mut parser = Parser::new("push constant 7\npop local 0", "", false);
+        let mut parser = Parser::new("push constant 7\npop local 0", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 2);
@@ -301,7 +281,7 @@ mod tests {
 
     #[test]
     fn parse_multiple_arithmetic_commands() {
-        let mut parser = Parser::new("add\nsub\n", "", false);
+        let mut parser = Parser::new("add\nsub\n", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 2);
@@ -327,7 +307,7 @@ mod tests {
 
     #[test]
     fn parse_label_command() {
-        let mut parser = Parser::new("label LOOP_START", "", false);
+        let mut parser = Parser::new("label LOOP_START", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -344,7 +324,7 @@ mod tests {
 
     #[test]
     fn parse_if_goto_command() {
-        let mut parser = Parser::new("if-goto LOOP_START", "", false);
+        let mut parser = Parser::new("if-goto LOOP_START", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -361,7 +341,7 @@ mod tests {
 
     #[test]
     fn parse_goto_command() {
-        let mut parser = Parser::new("goto LOOP_START", "", false);
+        let mut parser = Parser::new("goto LOOP_START", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -378,7 +358,7 @@ mod tests {
 
     #[test]
     fn parse_call_command() {
-        let mut parser = Parser::new("call function 2", "test", false);
+        let mut parser = Parser::new("call function 2", "test");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -395,7 +375,7 @@ mod tests {
 
     #[test]
     fn parse_function_command() {
-        let mut parser = Parser::new("function hello 2", "test", false);
+        let mut parser = Parser::new("function hello 2", "test");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -412,7 +392,7 @@ mod tests {
 
     #[test]
     fn parse_arithmetic_command() {
-        let mut parser = Parser::new("add", "", false);
+        let mut parser = Parser::new("add", "");
         parser.parse();
 
         assert_eq!(parser.commands.len(), 1);
@@ -430,7 +410,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Input should be defined before trying to parse")]
     fn fail_at_parsing_empty_input() {
-        let mut parser = Parser::new("", "", false);
+        let mut parser = Parser::new("", "");
         parser.parse();
     }
 }
