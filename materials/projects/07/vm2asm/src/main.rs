@@ -20,6 +20,10 @@ pub struct Args {
     /// output file to use (.asm)
     #[arg(short, long, default_value = "default")]
     output: String,
+
+    /// bootstrap
+    #[arg(short, long)]
+    bootstrap: bool,
 }
 
 pub fn main() {
@@ -60,7 +64,7 @@ pub fn main() {
         let commands = parser.get_fields();
 
         // generate assembly generator
-        let mut generator = code::AssemblyGenerator::new();
+        let mut generator = code::AssemblyGenerator::new(args.bootstrap);
 
         // generate assembly instructions from commands
         generator.process_commands(&commands);

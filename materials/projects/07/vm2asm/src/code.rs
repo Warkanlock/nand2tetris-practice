@@ -12,10 +12,50 @@ pub struct AssemblyGenerator {
 }
 
 impl AssemblyGenerator {
-    pub fn new() -> Self {
+    pub fn new(boostrap: bool) -> Self {
+        if boostrap {
+            let mut instructions = Vec::new();
+
+            instructions.push(AssemblyInstruction {
+                instruction: Self::move_stack_point_to(256),
+                command: Command {
+                    command_type: CommandType::CBoostrap,
+                    arg_1: None,
+                    arg_2: None,
+                },
+            });
+
+            instructions.push(AssemblyInstruction {
+                instruction: Self::call("Sys.init"),
+                command: Command {
+                    command_type: CommandType::CCall,
+                    arg_1: None,
+                    arg_2: None,
+                },
+            });
+
+            return Self { instructions };
+        }
+
+        // no boostrap code
         Self {
             instructions: Vec::new(),
         }
+    }
+
+    fn move_stack_point_to(address: usize) -> String {
+        let mut instruction: String = String::new();
+
+        instruction.push_str(format!("@{}", address).as_str());
+        instruction.push_str("D=A");
+        instruction.push_str("@SP");
+        instruction.push_str("M=D"); // use address from 256CBoostrap
+
+        instruction
+    }
+
+    fn call(function_name: &str) -> String {
+        format!("{} not-implemented-yet", function_name)
     }
 
     fn add_infinite_loop() -> String {
@@ -89,7 +129,6 @@ impl AssemblyGenerator {
         instruction
     }
 
-
     fn pop_from_stack() -> String {
         let mut instruction = String::new();
 
@@ -114,7 +153,7 @@ impl AssemblyGenerator {
 
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
         let mut instructions: Vec<AssemblyInstruction> = Vec::new();
-        let mut index_label : u8 = 0;
+        let mut index_label: u8 = 0;
 
         for command in commands.iter() {
             let reference_command = command.clone();
@@ -380,7 +419,7 @@ impl AssemblyGenerator {
                             let start_tag = format!("GT_START_{}", index_label);
                             index_label += 1;
                             let end_tag = format!("GT_END_{}", index_label);
-                            
+
                             // 1. pop value from stack
                             // 2. pop value from stack
                             // 3. compare the two values
@@ -473,7 +512,9 @@ impl AssemblyGenerator {
                         instruction,
                         command: reference_command,
                     });
-                }
+                },
+                CommandType::CCall => panic!("not implemented yet"),
+                CommandType::CBoostrap => panic!("not implemented yet"),
             }
         }
 
@@ -519,7 +560,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -536,7 +577,7 @@ mod tests {
             arg_2: Some("2".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -558,7 +599,7 @@ mod tests {
             arg_2: Some("-2".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
     }
@@ -573,7 +614,7 @@ mod tests {
             arg_2: Some("2".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -594,7 +635,7 @@ mod tests {
             arg_2: Some("2".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -615,7 +656,7 @@ mod tests {
             arg_2: Some("0".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -636,7 +677,7 @@ mod tests {
             arg_2: Some("2".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -657,7 +698,7 @@ mod tests {
             arg_2: Some("0".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -678,7 +719,7 @@ mod tests {
             arg_2: Some("2".to_string()),
         }];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -709,7 +750,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -748,7 +789,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -782,7 +823,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -791,10 +832,7 @@ mod tests {
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
-        assert_eq!(
-            generator.instructions[1].instruction,
-            "@SP\nA=M-1\nM=-M\n"
-        );
+        assert_eq!(generator.instructions[1].instruction, "@SP\nA=M-1\nM=-M\n");
     }
 
     #[test]
@@ -817,7 +855,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -852,7 +890,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -887,7 +925,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -922,7 +960,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -961,7 +999,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -995,7 +1033,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 
@@ -1004,17 +1042,14 @@ mod tests {
             generator.instructions[0].instruction,
             "@7\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         );
-        assert_eq!(
-            generator.instructions[1].instruction,
-            "@SP\nA=M-1\nM=!M\n"
-        );
+        assert_eq!(generator.instructions[1].instruction, "@SP\nA=M-1\nM=!M\n");
     }
 
     #[test]
     fn process_infinite_loop() {
         let commands = vec![];
 
-        let mut generator = AssemblyGenerator::new();
+        let mut generator = AssemblyGenerator::new(false);
 
         generator.process_commands(&commands);
 

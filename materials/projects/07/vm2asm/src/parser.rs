@@ -5,10 +5,11 @@ pub enum CommandType {
     CArithmetic,
     CPush,
     CPop,
+    CBoostrap,
     // CIf,
     // CFunction,
     // CReturn,
-    // CCall,
+    CCall,
 }
 
 #[derive(Debug, PartialEq, Clone)]
