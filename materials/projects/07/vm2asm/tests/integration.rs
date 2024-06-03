@@ -5,7 +5,7 @@ fn create_virtual_machine_and_parse() {
     vm2asm::logs::log_command("create_virtual_machine_and_parse");
 
     // create a new virtual machine
-    let mut parser = vm2asm::parser::Parser::new("add\nsub\nneg\npush local 2", "");
+    let mut parser = vm2asm::parser::Parser::new("add\nsub\nneg\npush local 2", "", false);
 
     // parse the virtual machine
     parser.parse();
@@ -65,7 +65,7 @@ fn create_virtual_machine_and_parse() {
     );
 
     // generate a assembly generator based on those commands
-    let mut generator = vm2asm::code::AssemblyGenerator::new(false);
+    let mut generator = vm2asm::code::AssemblyGenerator::new();
 
     // process commands
     generator.process_commands(&commands);

@@ -9,31 +9,13 @@ pub struct AssemblyInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct AssemblyGenerator {
     pub instructions: Vec<AssemblyInstruction>,
-    pub should_bootstrap: bool,
 }
 
 impl AssemblyGenerator {
-    pub fn new(boostrap: bool) -> Self {
-        // no boostrap code
+    pub fn new() -> Self {
         Self {
             instructions: Vec::new(),
-            should_bootstrap: boostrap,
         }
-    }
-
-    fn move_stack_point_to(address: usize) -> String {
-        let mut instruction: String = String::new();
-
-        instruction.push_str(format!("@{}", address).as_str());
-        instruction.push_str("D=A");
-        instruction.push_str("@SP");
-        instruction.push_str("M=D"); // use address from 256CBoostrap
-
-        instruction
-    }
-
-    fn call(function_name: &str) -> String {
-        format!("{} not-implemented-yet", function_name)
     }
 
     fn add_infinite_loop() -> String {
@@ -132,32 +114,6 @@ impl AssemblyGenerator {
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
         let mut instructions: Vec<AssemblyInstruction> = Vec::new();
         let mut index_label: u8 = 0;
-
-        // if bootstrap is enabled, we need to add the bootstrap code
-        // to the instructions
-        // 1. move stack pointer to 256
-        // 2. call Sys.init
-        if self.should_bootstrap {
-            instructions.push(AssemblyInstruction {
-                instruction: Self::move_stack_point_to(256),
-                command: Command {
-                    command_type: CommandType::CBoostrap,
-                    arg_1: None,
-                    arg_2: None,
-                    classname: None,
-                },
-            });
-
-            instructions.push(AssemblyInstruction {
-                instruction: Self::call("Sys.init"),
-                command: Command {
-                    command_type: CommandType::CCall,
-                    arg_1: None,
-                    arg_2: None,
-                    classname: None,
-                },
-            });
-        }
 
         for command in commands.iter() {
             let reference_command = command.clone();
@@ -519,7 +475,6 @@ impl AssemblyGenerator {
                 }
                 CommandType::CLabel => panic!("not implemented yet"),
                 CommandType::CCall => panic!("not implemented yet"),
-                CommandType::CBoostrap => panic!("not implemented yet"),
                 CommandType::CIf => panic!("not implemented yet"),
                 CommandType::CGoto => panic!("not implemented yet"),
                 CommandType::CFunction => panic!("not implemented yet"),
@@ -573,7 +528,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -591,7 +546,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -614,7 +569,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
     }
@@ -630,7 +585,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -652,7 +607,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -674,7 +629,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -696,7 +651,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -718,7 +673,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -740,7 +695,7 @@ mod tests {
             classname: None,
         }];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -774,7 +729,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -816,7 +771,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -852,7 +807,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -887,7 +842,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -925,7 +880,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -963,7 +918,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -1001,7 +956,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -1043,7 +998,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -1079,7 +1034,7 @@ mod tests {
             },
         ];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 
@@ -1095,7 +1050,7 @@ mod tests {
     fn process_infinite_loop() {
         let commands = vec![];
 
-        let mut generator = AssemblyGenerator::new(false);
+        let mut generator = AssemblyGenerator::new();
 
         generator.process_commands(&commands);
 

@@ -34,6 +34,7 @@ pub fn main() {
     let version = env!("CARGO_PKG_VERSION");
     let input = args.input;
     let output = args.output;
+    let bootstrap = args.bootstrap;
 
     // print headers of the program
     utils::header_info(app_name, version, &input);
@@ -55,7 +56,7 @@ pub fn main() {
             .unwrap_or("");
 
         // initialize the parser with class_name and content
-        let mut parser = parser::Parser::new(&input_content, &input_file);
+        let mut parser = parser::Parser::new(&input_content, &input_file, bootstrap);
 
         // parse input
         parser.parse();
@@ -64,7 +65,7 @@ pub fn main() {
         let commands = parser.get_fields();
 
         // generate assembly generator
-        let mut generator = code::AssemblyGenerator::new(args.bootstrap);
+        let mut generator = code::AssemblyGenerator::new();
 
         // generate assembly instructions from commands
         generator.process_commands(&commands);
