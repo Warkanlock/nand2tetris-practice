@@ -10,6 +10,7 @@ pub struct AssemblyInstruction {
 pub struct AssemblyGenerator {
     pub instructions: Vec<AssemblyInstruction>,
     pub should_bootstrap: bool,
+    pub last_function : String,
 }
 
 pub struct AssemblyConfiguration {
@@ -21,6 +22,7 @@ impl AssemblyGenerator {
         Self {
             instructions: Vec::new(),
             should_bootstrap: config.bootstrap,
+            last_function: "default".to_string()
         }
     }
 
@@ -137,10 +139,16 @@ impl AssemblyGenerator {
         bytes
     }
 
+    fn generate_label(&mut self, command: &Command) -> String {
+        let label = command.arg_1.as_ref().unwrap();
+        let file_name = command.classname.as_ref().unwrap();
+
+        format!("{}.{}${}", file_name, self.last_function, label)
+    }
+
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
         let mut instructions: Vec<AssemblyInstruction> = Vec::new();
         let mut index_label: u8 = 0;
-        let mut context_function_name: String = "default".to_string(); // default function name
 
         // if bootstrap, should add the code of:
         // 1. SP=256
@@ -239,8 +247,9 @@ impl AssemblyGenerator {
                             // this will pick the underlying file name
                             let classname = reference_command.classname.as_ref().unwrap();
 
-                            instruction
-                                .push_str(format!("@{}.{}\n", classname, static_base + static_index).as_str());
+                            instruction.push_str(
+                                format!("@{}.{}\n", classname, static_base + static_index).as_str(),
+                            );
                             instruction.push_str("D=M\n");
                         }
                         _ => {
@@ -352,8 +361,9 @@ impl AssemblyGenerator {
                             // this will pick the underlying file name
                             let classname = reference_command.classname.as_ref().unwrap();
 
-                            instruction
-                                .push_str(format!("@{}.{}\n", classname, static_base + static_index).as_str());
+                            instruction.push_str(
+                                format!("@{}.{}\n", classname, static_base + static_index).as_str(),
+                            );
                             instruction.push_str("M=D\n");
                         }
                         _ => {
@@ -534,9 +544,7 @@ impl AssemblyGenerator {
                 CommandType::CLabel => {
                     let mut instruction: String = String::new();
 
-                    let label = reference_command.arg_1.as_ref().unwrap();
-                    let file_name = reference_command.classname.as_ref().unwrap();
-                    let final_name = format!("{}.{}${}", file_name, context_function_name, label);
+                    let final_name = self.generate_label(&reference_command);
 
                     instruction.push_str(format!("({})\n", final_name).as_str());
 
@@ -548,9 +556,7 @@ impl AssemblyGenerator {
                 CommandType::CIf => {
                     let mut instruction: String = String::new();
 
-                    let label = reference_command.arg_1.as_ref().unwrap();
-                    let file_name = reference_command.classname.as_ref().unwrap();
-                    let final_name = format!("{}.{}${}", file_name, context_function_name, label);
+                    let final_name = self.generate_label(&reference_command);
 
                     instruction.push_str(Self::pop_from_stack().as_str());
                     instruction.push_str("D=M\n");
@@ -561,13 +567,13 @@ impl AssemblyGenerator {
                         instruction,
                         command: reference_command,
                     })
-                },
+                }
                 CommandType::CGoto => {
                     let mut instruction: String = String::new();
 
                     let file_name = reference_command.classname.as_ref().unwrap();
                     let label = reference_command.arg_1.as_ref().unwrap();
-                    let final_name = format!("{}.{}${}", file_name, context_function_name, label);
+                    let final_name = format!("{}.{}${}", file_name, self.last_function, label);
 
                     instruction.push_str(format!("@{}\n", final_name).as_str());
                     instruction.push_str("0;JMP\n");
@@ -576,16 +582,21 @@ impl AssemblyGenerator {
                         instruction,
                         command: reference_command,
                     })
-                
-                },
+                }
                 CommandType::CCall => panic!("not implemented yet"),
                 CommandType::CFunction => {
                     let function_name = reference_command.arg_1.as_ref().unwrap();
-                    let num_locals = reference_command.arg_2.as_ref().unwrap().parse::<u16>().unwrap();
-                    context_function_name = function_name.clone();
+                    let num_locals = reference_command
+                        .arg_2
+                        .as_ref()
+                        .unwrap()
+                        .parse::<u16>()
+                        .unwrap();
+                    let classname: &String = reference_command.classname.as_ref().unwrap();
 
-                    println!("function name: {} | locals: {}", function_name, num_locals);
-                },
+                    // copy function name to the last function being called
+                    self.last_function = function_name.clone();
+                }
                 CommandType::CReturn => panic!("not implemented yet"),
             }
         }
@@ -712,7 +723,7 @@ mod tests {
             command_type: CommandType::CPush,
             arg_1: Some("static".to_string()),
             arg_2: Some("2".to_string()),
-            classname: Some("test".to_string())
+            classname: Some("test".to_string()),
         }];
 
         let mut generator = AssemblyGenerator::new(AssemblyConfiguration { bootstrap: false });
@@ -1227,7 +1238,10 @@ mod tests {
         generator.process_commands(&commands);
 
         assert_eq!(generator.instructions.len(), 2);
-        assert_eq!(generator.instructions[0].instruction, "(SimpleFunction.default$loopLabel)\n");
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "(SimpleFunction.default$loopLabel)\n"
+        );
     }
 
     #[test]
@@ -1244,6 +1258,9 @@ mod tests {
         generator.process_commands(&commands);
 
         assert_eq!(generator.instructions.len(), 2);
-        assert_eq!(generator.instructions[0].instruction, "@SimpleFunction.default$loopLabel\n0;JMP\n");
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@SimpleFunction.default$loopLabel\n0;JMP\n"
+        );
     }
 }
