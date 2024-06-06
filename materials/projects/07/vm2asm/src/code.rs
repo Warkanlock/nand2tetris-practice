@@ -11,6 +11,7 @@ pub struct AssemblyGenerator {
     pub instructions: Vec<AssemblyInstruction>,
     pub should_bootstrap: bool,
     pub last_function: String,
+    pub last_return: usize,
 }
 
 pub struct AssemblyConfiguration {
@@ -23,6 +24,7 @@ impl AssemblyGenerator {
             instructions: Vec::new(),
             should_bootstrap: config.bootstrap,
             last_function: "default".to_string(),
+            last_return: 0,
         }
     }
 
@@ -144,6 +146,14 @@ impl AssemblyGenerator {
         let file_name = command.classname.as_ref().unwrap();
 
         format!("{}.{}${}", file_name, self.last_function, label)
+    }
+
+    fn generate_return(&mut self, command: &Command) -> String {
+        let file_name = command.classname.as_ref().unwrap();
+        format!(
+            "{}.{}$ret.{}",
+            file_name, self.last_function, self.last_return
+        )
     }
 
     pub fn process_commands(&mut self, commands: &Vec<Command>) {
@@ -583,7 +593,6 @@ impl AssemblyGenerator {
                         command: reference_command,
                     })
                 }
-                CommandType::CCall => panic!("not implemented yet"),
                 CommandType::CFunction => {
                     let function_name = reference_command.arg_1.as_ref().unwrap();
                     let num_locals = reference_command
@@ -602,8 +611,7 @@ impl AssemblyGenerator {
                         function_name.clone()
                     };
 
-    
-                    let mut instruction : String = String::new();
+                    let mut instruction: String = String::new();
 
                     // add label of function
                     instruction.push_str(format!("({})\n", label).as_str());
@@ -627,7 +635,141 @@ impl AssemblyGenerator {
                         command: reference_command,
                     })
                 }
-                CommandType::CReturn => panic!("not implemented yet"),
+                CommandType::CCall => {
+                    let mut instruction: String = String::new();
+                    let return_address = self.generate_return(&reference_command);
+
+                    // push returnAddress
+                    instruction.push_str(format!("@{}\n", return_address).as_str());
+                    instruction.push_str("D=A\n");
+
+                    // push address and increase stack
+                    instruction.push_str(Self::push_latest_to_stack().as_str());
+                    instruction.push_str(Self::increase_stack().as_str());
+
+                    // save segments in memory
+                    for segment in vec!["LCL", "ARG", "THIS", "THAT"] {
+                        // push LCL
+                        instruction.push_str(format!("@{}\n", segment).as_str());
+                        instruction.push_str("D=M\n");
+
+                        // push LCL to stack
+                        instruction.push_str(Self::push_latest_to_stack().as_str());
+                        instruction.push_str(Self::increase_stack().as_str());
+                    }
+
+                    // reposition ARG
+                    instruction.push_str("@SP\n");
+                    instruction.push_str("D=M\n");
+
+                    // get number of arguments
+                    let num_args = reference_command
+                        .arg_2
+                        .as_ref()
+                        .unwrap()
+                        .parse::<u16>()
+                        .unwrap();
+
+                    // get number of arguments + 5
+                    instruction.push_str(format!("@{}\n", num_args + 5).as_str());
+
+                    // ARG(address) = SP - (num_args + 5)
+                    instruction.push_str("D=D-A\n");
+
+                    // get the address of ARG
+                    instruction.push_str("@ARG\n");
+                    instruction.push_str("M=D\n");
+
+                    // reposition LCL
+                    instruction.push_str("@SP\n");
+                    instruction.push_str("D=M\n");
+
+                    // get the address of LCL
+                    instruction.push_str("@LCL\n");
+                    instruction.push_str("M=D\n");
+
+                    // jump to function
+                    let function_name: String = format!(
+                        "{}.{}",
+                        reference_command.classname.as_ref().unwrap(),
+                        reference_command.arg_1.as_ref().unwrap()
+                    );
+
+                    // add call to function
+                    instruction.push_str(Self::call(function_name.as_str()).as_str());
+
+                    // add return label
+                    instruction.push_str(format!("({})\n", return_address).as_str());
+
+                    // increase return count
+                    self.last_return += 1;
+
+                    instructions.push(AssemblyInstruction {
+                        instruction,
+                        command: reference_command,
+                    })
+                }
+                CommandType::CReturn => {
+                    let mut instruction: String = String::new();
+
+                    // FRAME = LCL
+                    instruction.push_str("@LCL\n");
+                    instruction.push_str("D=M\n");
+
+                    // store FRAME in R13
+                    instruction.push_str("@R13\n");
+                    instruction.push_str("M=D\n");
+
+                    // RET = *(FRAME-5)
+                    instruction.push_str("@5\n");
+                    instruction.push_str("A=D-A\n");
+                    instruction.push_str("D=M\n");
+
+                    // store RET in R14 ( we use R14 to store the return address )
+                    instruction.push_str("@R14\n");
+                    instruction.push_str("M=D\n");
+
+                    // *ARG = pop()
+                    instruction.push_str(Self::pop_from_stack().as_str());
+                    instruction.push_str("D=M\n");
+
+                    // modify the pointer of ARG
+                    instruction.push_str("@ARG\n");
+                    instruction.push_str("A=M\n");
+                    instruction.push_str("M=D\n");
+
+                    // SP = ARG + 1
+                    instruction.push_str("@ARG\n");
+                    instruction.push_str("D=M+1\n");
+                    instruction.push_str("@SP\n");
+                    instruction.push_str("M=D\n");
+
+                    let mut index = 1;
+                    for segment in vec!["THAT", "THIS", "ARG", "LCL"] {
+                        // restore THAT, THIS, ARG, LCL
+                        instruction.push_str("@R13\n");
+                        instruction.push_str("D=M\n");
+                        instruction.push_str(format!("@{}\n", index).as_str());
+                        instruction.push_str("A=D-A\n");
+                        instruction.push_str("D=M\n");
+                        instruction.push_str(format!("@{}\n", segment).as_str());
+                        instruction.push_str("M=D\n");
+
+                        // increase index
+                        index += 1;
+                    }
+
+                    // goto retAddress from FRAME[5]
+                    instruction.push_str("@R14\n");
+                    instruction.push_str("A=M\n");
+                    instruction.push_str("0;JMP\n");
+
+                    // add instruction to the list
+                    instructions.push(AssemblyInstruction {
+                        instruction,
+                        command: reference_command,
+                    })
+                }
             }
         }
 
@@ -1312,7 +1454,7 @@ mod tests {
             generator.instructions[0].instruction,
             // should pop, check if it's not zero and jump
             "@SP\nAM=M-1\nD=M\n@SimpleFunction.default$loopLabel\nD;JNE\n"
-        );  
+        );
     }
 
     #[test]
@@ -1355,4 +1497,43 @@ mod tests {
         );
     }
 
+    #[test]
+    fn process_call_command() {
+        let commands = vec![Command {
+            command_type: CommandType::CCall,
+            arg_1: Some("SimpleFunction".to_string()),
+            arg_2: Some("2".to_string()),
+            classname: Some("test".to_string()),
+        }];
+
+        let mut generator = AssemblyGenerator::new(AssemblyConfiguration { bootstrap: false });
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 2);
+        assert_eq!(
+            generator.instructions[0].instruction,
+            "@test.default$ret.0\nD=A\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@LCL\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@ARG\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@THIS\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@THAT\nD=M\n@SP\nA=M\nM=D\n@SP\nM=M+1\n@SP\nD=M\n@7\nD=D-A\n@ARG\nM=D\n@SP\nD=M\n@LCL\nM=D\n@test.SimpleFunction\n0;JMP\n(test.default$ret.0)\n"
+        );
+    }
+
+    #[test]
+    fn process_return_command() {
+        let commands = vec![Command {
+            command_type: CommandType::CReturn,
+            arg_1: None,
+            arg_2: None,
+            classname: None,
+        }];
+
+        let mut generator = AssemblyGenerator::new(AssemblyConfiguration { bootstrap: false });
+
+        generator.process_commands(&commands);
+
+        assert_eq!(generator.instructions.len(), 2);
+        assert_eq!(
+            generator.instructions[0].instruction,
+"@LCL\nD=M\n@R13\nM=D\n@5\nA=D-A\nD=M\n@R14\nM=D\n@SP\nAM=M-1\nD=M\n@ARG\nA=M\nM=D\n@ARG\nD=M+1\n@SP\nM=D\n@R13\nD=M\n@1\nA=D-A\nD=M\n@THAT\nM=D\n@R13\nD=M\n@2\nA=D-A\nD=M\n@THIS\nM=D\n@R13\nD=M\n@3\nA=D-A\nD=M\n@ARG\nM=D\n@R13\nD=M\n@4\nA=D-A\nD=M\n@LCL\nM=D\n@R14\nA=M\n0;JMP\n"
+        );
+    }
 }
