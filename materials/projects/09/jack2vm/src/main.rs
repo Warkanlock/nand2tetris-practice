@@ -1,10 +1,9 @@
+#![allow(dead_code,unused_imports,unused_variables)]
+
 use clap::Parser as ClapParser;
-use code::AssemblyConfiguration;
-use logs::log_command;
+use jack2vm::parser::JackCommand;
 use std::path::Path;
 
-// module definitions
-mod code;
 mod logs;
 mod parser;
 mod utils;
@@ -31,11 +30,10 @@ pub fn main() {
     let args = Args::parse();
 
     // extract parameters from command line
-    let app_name = "vm2asm machine translator";
+    let app_name = "jack2vm compiler";
     let version = env!("CARGO_PKG_VERSION");
     let input = args.input;
     let output = args.output;
-    let bootstrap = args.bootstrap;
 
     // print headers of the program
     utils::header_info(app_name, version, &input);
@@ -56,33 +54,8 @@ pub fn main() {
             .and_then(|stem| stem.to_str())
             .unwrap_or("");
 
-        // initialize the parser with class_name and content
-        let mut parser = parser::Parser::new(&input_content, &input_file);
-
-        // parse input
-        parser.parse();
-
-        // get the commands
-        let commands = parser.get_fields();
-
-        // generate assembly generator
-        let mut generator = code::AssemblyGenerator::new(AssemblyConfiguration { bootstrap });
-
-        // generate assembly instructions from commands
-        generator.process_commands(&commands);
-
-        // get the assembly instructions
-        for instruction in generator.instructions.iter() {
-            log_command(&format!(
-                "{:?} >> {:?} from {:?}",
-                parser.get_base_name(),
-                instruction.instruction,
-                instruction.command
-            ));
-        }
-
         // add isntructions into instructions vector
-        instructions.extend(generator.instructions_to_bytes());
+        instructions.extend(vec!(u8::from(0)))
     }
 
     // save the output of all the instructions
