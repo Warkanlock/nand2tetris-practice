@@ -1,0 +1,38 @@
+# Generated files by Cargo
+/target/
+
+# Rustdoc output
+/doc/
+
+# Cargo lock file (keep it if you're building a library)
+/Cargo.lock
+
+# IDE/Editor specific files
+**/.idea/
+**/*.swp
+**/*.swo
+.vscode/
+*.code-workspace
+
+# macOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
+Desktop.ini
+
+# Linux specific files
+.directory
+
+# Temporary files
+**/*.tmp
+
+# Backup files
+*~
+**/*~
+
+# Environment configuration files
+.env
+.env.local
+
+/tests
