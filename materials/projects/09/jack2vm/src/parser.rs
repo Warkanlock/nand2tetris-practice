@@ -6,12 +6,47 @@ pub struct JackCommand {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct JackToken {}
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum JackTokenType {
+    KEYWORD,
+    SYMBOL,
+    IDENTIFIER,
+    INTCONST,
+    STRINGCONST,
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum JackKeyword {
+    CLASS,
+    METHOD,
+    FUNCTION,
+    CONSTRUCTOR,
+    INT,
+    BOOLEAN,
+    CHAR,
+    VOID,
+    VAR,
+    STATIC,
+    FIELD,
+    LET,
+    DO,
+    IF,
+    ELSE,
+    WHILE,
+    RETURN,
+    TRUE,
+    FALSE,
+    NULL,
+    THIS,
+}
+
 pub struct JackTokenizer {
     pub content: String, // file content from input
     pub instructions: Vec<JackCommand>,
     pub tokens: Vec<JackToken>,
     verbose: bool,
 }
+
 
 /*
  * Process of syntax analysis:
