@@ -57,9 +57,10 @@ pub fn main() {
         // initialize a parser based on the content
         let parser : JackTokenizer = JackTokenizer::new(&content);
 
-        // iterate across tokens
+        // obtain across tokens
         parser.parse();
 
+        // iterate across tokens
         for token in parser.tokens {
             println!("{:?}", token)
         }
