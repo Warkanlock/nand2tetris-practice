@@ -55,7 +55,7 @@ pub fn main() {
             .unwrap_or("");
 
         // initialize a parser based on the content
-        let parser : JackTokenizer = JackTokenizer::new(&content);
+        let parser : JackTokenizer = JackTokenizer::new(&content, true);
 
         // obtain across tokens
         parser.parse();
