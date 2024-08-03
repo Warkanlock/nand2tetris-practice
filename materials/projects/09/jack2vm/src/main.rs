@@ -1,7 +1,7 @@
 #![allow(dead_code,unused_imports,unused_variables)]
 
 use clap::Parser as ClapParser;
-use jack2vm::parser::JackCommand;
+use parser::{JackToken, JackTokenizer};
 use std::path::Path;
 
 mod logs;
@@ -46,13 +46,23 @@ pub fn main() {
 
     for input in inputs {
         // read the contents of the input file to be translated to commands
-        let input_content = utils::read_file(&input);
+        let content = utils::read_file(&input);
 
         // get filename instead of filepath
-        let input_file = Path::new(&input)
+        let filename = Path::new(&input)
             .file_stem()
             .and_then(|stem| stem.to_str())
             .unwrap_or("");
+
+        // initialize a parser based on the content
+        let parser : JackTokenizer = JackTokenizer::new(&content);
+
+        // iterate across tokens
+        parser.parse();
+
+        for token in parser.tokens {
+            println!("{:?}", token)
+        }
 
         // add isntructions into instructions vector
         instructions.extend(vec!(u8::from(0)))
