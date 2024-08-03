@@ -84,6 +84,6 @@ pub fn main() {
         std::process::exit(0);
     }
 
-    log_info("No output file specified, using default output file");
+    log_info("no output file specified, using default output file");
     std::process::exit(0);
 }
