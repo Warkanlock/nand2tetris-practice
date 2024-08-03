@@ -1,7 +1,8 @@
-#![allow(dead_code,unused_imports,unused_variables)]
+#![allow(dead_code, unused_imports, unused_variables)]
 
 use clap::Parser as ClapParser;
-use parser::{JackToken, JackTokenizer};
+use jack2vm::logs::{log_info, log_success, log_warn};
+use parser::JackTokenizer;
 use std::path::Path;
 
 mod logs;
@@ -18,12 +19,13 @@ pub struct Args {
     input: String,
 
     /// output file to use (.asm)
-    #[arg(short, long, default_value = "default")]
-    output: String,
-
-    /// bootstrap
     #[arg(short, long)]
-    bootstrap: bool,
+    output: Option<String>,
+
+    /// expect to extract not only the output but the tree structure
+    /// result of the syntax analysis step
+    #[arg(short, long, default_value_t = false)]
+    tree: bool,
 }
 
 pub fn main() {
@@ -34,12 +36,13 @@ pub fn main() {
     let version = env!("CARGO_PKG_VERSION");
     let input = args.input;
     let output = args.output;
+    let syntax_tree = args.tree;
 
     // print headers of the program
     utils::header_info(app_name, version, &input);
 
     // get inputs from path
-    let inputs = utils::get_inputs_from_path(&input);
+    let inputs = utils::get_inputs_from_path(&input, "jack");
 
     // vector to store all the instrcutions across the files
     let mut instructions = Vec::new();
@@ -48,6 +51,8 @@ pub fn main() {
         // read the contents of the input file to be translated to commands
         let content = utils::read_file(&input);
 
+        log_success(&format!("{}: read successfully", input));
+
         // get filename instead of filepath
         let filename = Path::new(&input)
             .file_stem()
@@ -55,20 +60,30 @@ pub fn main() {
             .unwrap_or("");
 
         // initialize a parser based on the content
-        let parser : JackTokenizer = JackTokenizer::new(&content, true);
+        let mut parser: JackTokenizer = JackTokenizer::new(&content, true);
 
         // obtain across tokens
         parser.parse();
 
-        // iterate across tokens
-        for token in parser.tokens {
-            println!("{:?}", token)
+        log_success(&format!("{}: parsed successfully", filename));
+
+        if syntax_tree {
+            log_warn("syntax tree not implemented yet");
+            // TODO: store the syntax tree in a XML file
         }
 
         // add isntructions into instructions vector
-        instructions.extend(vec!(u8::from(0)))
+        instructions.extend(vec![u8::from(0)])
     }
 
-    // save the output of all the instructions
-    utils::save_file(&output, &instructions);
+    if let Some(output) = output {
+        // save the output of all the instructions
+        utils::save_file(&output, &instructions);
+
+        // exit the program
+        std::process::exit(0);
+    }
+
+    log_info("No output file specified, using default output file");
+    std::process::exit(0);
 }

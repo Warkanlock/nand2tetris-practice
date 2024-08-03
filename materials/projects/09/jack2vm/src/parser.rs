@@ -1,10 +1,21 @@
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct JackCommand {
-    // we should diagram a jack token
+#[derive(Debug, PartialEq, Clone)]
+pub struct JackInstruction {
+    pub line: usize,
+    pub value: String,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct JackToken {}
+#[derive(Debug, PartialEq, Clone)]
+pub struct JackToken {
+    pub token_type: JackTokenType,
+    pub keyword: JackKeyword,
+
+    // depending on the token_type, the following fields will be filled
+    // or not
+    pub symbol: Option<char>,
+    pub identifier: Option<String>,
+    pub int_val: Option<i32>,
+    pub string_val: Option<String>,
+}
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum JackTokenType {
@@ -42,11 +53,10 @@ pub enum JackKeyword {
 
 pub struct JackTokenizer {
     pub content: String, // file content from input
-    pub instructions: Vec<JackCommand>,
+    pub instructions: Vec<JackInstruction>,
     pub tokens: Vec<JackToken>,
     verbose: bool,
 }
-
 
 /*
  * Process of syntax analysis:
@@ -57,7 +67,7 @@ pub struct JackTokenizer {
  * 4. Code generation: generate code from the parse tree
  */
 impl JackTokenizer {
-    pub fn new(content: &String, verbose : bool) -> Self {
+    pub fn new(content: &String, verbose: bool) -> Self {
         JackTokenizer {
             content: content.to_string(), // copy content, not really handy if big files
             instructions: Vec::new(),
@@ -66,7 +76,7 @@ impl JackTokenizer {
         }
     }
 
-    pub fn parse(&self) -> &Self {
+    pub fn parse(&mut self) -> &Self {
         // invalidate parse if content is not valid
         if self.content.len() == 0 {
             panic!("Cannot use parse without a valid content")
@@ -75,17 +85,24 @@ impl JackTokenizer {
         /*
          * Our approach here will be to go top-down (instead of bottom-up)
          */
-        let internal_tokens : Vec<&str> = self.content.split(' ').collect();
+        let content_without_breaklines = self.content.lines().collect::<Vec<&str>>().join(" ");
+        let content_without_whitespace: Vec<&str> = content_without_breaklines.split_whitespace().collect::<Vec<&str>>();
 
         // iterate across internal tokens of the content file
-        for internal_token in internal_tokens {
+        for (index, input_string) in content_without_whitespace.iter().enumerate() {
             if self.verbose {
-                println!("token > {:?}", internal_token);
+                println!("input string > {:?}", input_string);
             }
+
+            // push the command into the instructions vector
+            self.instructions.push(JackInstruction {
+                line: index + 1,
+                value: input_string.to_string(),
+            });
         }
 
         // TODO: parse content into Jack Commands and then into JackTokens
-        &self
+        self
     }
 }
 
@@ -98,11 +115,11 @@ mod tests {
         let tokenizer = JackTokenizer::new(&String::from("// empty content"), false);
         assert_eq!(tokenizer.instructions.len(), 0);
     }
-    
+
     #[test]
     #[should_panic(expected = "Cannot use parse without a valid content")]
     fn test_empty_initialization() {
-        let tokenizer : JackTokenizer = JackTokenizer::new(&String::from(""), false);
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from(""), false);
         tokenizer.parse();
     }
 }

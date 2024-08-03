@@ -60,15 +60,16 @@ pub fn save_file(output: &str, content: &Vec<u8>) {
 /// # Arguments
 ///
 /// * `path` - The path to get inputs from.
+/// * `format_file` - The format of the file to get inputs from.
 ///
 /// # Returns
 ///
 /// * A vector of strings containing the inputs.
-pub fn get_inputs_from_path(path: &str) -> Vec<String> {
+pub fn get_inputs_from_path(path: &str, format_file: &str) -> Vec<String> {
     let mut inputs: Vec<String> = Vec::new();
 
     // read input and assess if it's a file or a folder
-    if path.ends_with(".vm") {
+    if path.ends_with(format_file) {
         inputs.push(path.to_string());
     } else {
         // read content of the folder under input and get all .vm files
@@ -83,7 +84,7 @@ pub fn get_inputs_from_path(path: &str) -> Vec<String> {
                         Ok(file) => {
                             let file_name = file.path().display().to_string();
 
-                            if file_name.ends_with(".vm") {
+                            if file_name.ends_with(format_file) {
                                 inputs.push(file_name);
                             }
                         }
