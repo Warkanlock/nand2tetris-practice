@@ -59,11 +59,11 @@ pub fn main() {
             .and_then(|stem| stem.to_str())
             .unwrap_or("");
 
-        // initialize a parser based on the content
-        let mut parser: JackTokenizer = JackTokenizer::new(&content, true);
+        // initialize a tokenizer based on the content
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&content, true);
 
         // obtain across tokens
-        parser.parse();
+        tokenizer.tokenize();
 
         log_success(&format!("{}: parsed successfully", filename));
 

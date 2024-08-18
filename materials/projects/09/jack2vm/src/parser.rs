@@ -76,10 +76,10 @@ impl JackTokenizer {
         }
     }
 
-    pub fn parse(&mut self) -> &Self {
-        // invalidate parse if content is not valid
+    pub fn tokenize(&mut self) -> &Self {
+        // invalidate tokenizer if content is not valid
         if self.content.len() == 0 {
-            panic!("Cannot use parse without a valid content")
+            panic!("Cannot use tokenize without a valid content")
         }
 
         /*
@@ -101,7 +101,6 @@ impl JackTokenizer {
             });
         }
 
-        // TODO: parse content into Jack Commands and then into JackTokens
         self
     }
 }
@@ -119,7 +118,7 @@ mod tests {
     #[test]
     fn test_parse_simple_command() {
         let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("let a = 1;"), false); 
-        tokenizer.parse();
+        tokenizer.tokenize();
         assert_eq!(tokenizer.instructions.len(), 4);
 
         // copy first instruction
@@ -130,9 +129,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Cannot use parse without a valid content")]
+    #[should_panic(expected = "Cannot use tokenize without a valid content")]
     fn test_empty_initialization() {
         let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from(""), false);
-        tokenizer.parse();
+        tokenizer.tokenize();
     }
 }
