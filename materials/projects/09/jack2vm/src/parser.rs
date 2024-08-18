@@ -117,6 +117,19 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_simple_command() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("let a = 1;"), false); 
+        tokenizer.parse();
+        assert_eq!(tokenizer.instructions.len(), 4);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+
+        // assert
+        assert_eq!(first.value, "let");
+    }
+
+    #[test]
     #[should_panic(expected = "Cannot use parse without a valid content")]
     fn test_empty_initialization() {
         let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from(""), false);
