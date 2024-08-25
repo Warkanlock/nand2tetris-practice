@@ -207,28 +207,20 @@ impl JackTokenizer {
                 continue;
             }
 
+            if JackTokenizer::start_multiline(line) {
+                // if there's a multiline string, we should add it as a whole
+                symbols.push(line.to_string());
+                continue;
+            }
+
+            println!("line > {:?}", line);
+
             // split content without whitespaces
             let content: Vec<&str> = line.split_whitespace().collect::<Vec<&str>>();
-
 
             for element in content.iter() {
                 if JackTokenizer::has_symbol(element) {
                     self.extract_symbols(element, &mut symbols);
-                } else if JackTokenizer::start_multiline(element) {
-                    // keep element and 1+n elements until we reach \"
-                    let mut multiline_word = String::new();
-
-                    let mut init = element;
-
-                    while !init.ends_with("\"") {
-                        multiline_word.push_str(init);
-                        multiline_word.push_str("\n");
-
-                        // find the next element
-                        init = &content[content.iter().position(|&r| r == *init).unwrap() + 1];
-                    }
-
-                    symbols.push(multiline_word);
                 } else {
                     symbols.push(element.to_string());
                 }
@@ -299,37 +291,31 @@ impl JackTokenizer {
                         symbol: None,
                         identifier: None,
                     })
-                },
-                e if e.starts_with("\"") => {
-                    self.tokens.push(JackToken {
-                        token_type: JackTokenType::STRINGCONST,
-                        keyword: None,
-                        int_val: None,
-                        string_val: Some(element.value),
-                        symbol: None,
-                        identifier: None,
-                    })
-                },
-                e if e.parse::<i32>().is_ok() => {
-                    self.tokens.push(JackToken {
-                        token_type: JackTokenType::INTCONST,
-                        keyword: None,
-                        int_val: Some(e.parse::<i32>().unwrap()),
-                        string_val: None,
-                        symbol: None,
-                        identifier: None,
-                    })
-                },
-                e if e.chars().all(char::is_alphanumeric) => {
-                    self.tokens.push(JackToken {
-                        token_type: JackTokenType::IDENTIFIER,
-                        keyword: None,
-                        int_val: None,
-                        string_val: None,
-                        symbol: None,
-                        identifier: Some(element.value),
-                    })
-                },
+                }
+                e if e.starts_with("\"") => self.tokens.push(JackToken {
+                    token_type: JackTokenType::STRINGCONST,
+                    keyword: None,
+                    int_val: None,
+                    string_val: Some(element.value),
+                    symbol: None,
+                    identifier: None,
+                }),
+                e if e.parse::<i32>().is_ok() => self.tokens.push(JackToken {
+                    token_type: JackTokenType::INTCONST,
+                    keyword: None,
+                    int_val: Some(e.parse::<i32>().unwrap()),
+                    string_val: None,
+                    symbol: None,
+                    identifier: None,
+                }),
+                e if e.chars().all(char::is_alphanumeric) => self.tokens.push(JackToken {
+                    token_type: JackTokenType::IDENTIFIER,
+                    keyword: None,
+                    int_val: None,
+                    string_val: None,
+                    symbol: None,
+                    identifier: Some(element.value),
+                }),
                 _ => log_info(format!("No token type found for element {:?}", element).as_str()),
             }
         }
@@ -381,8 +367,7 @@ mod tests {
 
     #[test]
     fn test_parse_simple_command_as_string() {
-        let mut tokenizer: JackTokenizer =
-            JackTokenizer::new(&String::from("\"hello\""), false);
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("\"hello\""), false);
         tokenizer.tokenize();
         assert_eq!(tokenizer.instructions.len(), 1);
 
@@ -472,7 +457,8 @@ mod tests {
 
     #[test]
     fn test_parse_simple_command_with_string_multiline() {
-        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("\"hello\nworld\""), false);
+        let mut tokenizer: JackTokenizer =
+            JackTokenizer::new(&String::from("\"hello world\""), false);
         tokenizer.tokenize();
         assert_eq!(tokenizer.instructions.len(), 1);
 
@@ -480,7 +466,7 @@ mod tests {
         let first = tokenizer.instructions[0].clone();
 
         // assert
-        assert_eq!(first.value, "\"hello\nworld\"");
+        assert_eq!(first.value, "\"hello world\"");
 
         // check tokens
         assert_eq!(tokenizer.tokens.len(), 1);
@@ -488,7 +474,6 @@ mod tests {
         // check tokens type as well
         assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::STRINGCONST);
     }
-
 
     #[test]
     fn test_parse_simple_command_with_int() {
