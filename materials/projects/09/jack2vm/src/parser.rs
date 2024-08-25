@@ -126,8 +126,8 @@ impl JackTokenizer {
         JACK_SYMBOLS.iter().any(|&symbol| s.contains(symbol))
     }
 
-    fn start_multiline(s: &str) -> bool {
-        s.starts_with("\"")
+    fn is_string(s: &str) -> bool {
+        s.starts_with("\"") || s.contains("\"")
     }
 
     pub fn extract_symbols(&self, element: &str, symbols: &mut Vec<String>) -> () {
@@ -167,7 +167,7 @@ impl JackTokenizer {
 
                 if next_next_char.is_some() && JackTokenizer::is_symbol(next_next_char.unwrap()) {
                     acc_word.push(next_char);
-                    symbols.push(acc_word.to_string());
+                    symbols.push(acc_word.trim().to_string());
                     acc_word = String::new();
                 } else {
                     // if it's not a symbol, just add the char to the word
@@ -182,6 +182,9 @@ impl JackTokenizer {
         if !acc_word.is_empty() {
             symbols.push(acc_word.to_string());
         }
+
+        // remove empty symbols
+        symbols.retain(|x| !x.is_empty());
     }
 
     pub fn tokenize(&mut self) -> &Self {
@@ -201,19 +204,65 @@ impl JackTokenizer {
         let mut symbols: Vec<String> = Vec::new();
 
         // divide the content into lines of code
-        for line in content_as_lines.iter() {
+        for (i, line) in content_as_lines.iter().enumerate() {
             // if the line is a comment, discard it as a whole and continue
             if JackTokenizer::has_comment(line) {
                 continue;
             }
 
-            if JackTokenizer::start_multiline(line) {
-                // if there's a multiline string, we should add it as a whole
-                symbols.push(line.to_string());
+            // this will help us to use strings with spaces and multiline
+            //
+            // e.g: "hello world" -> ["hello world"]
+            // e.g: "hello\nworld" -> ["hello world"] // still hello world
+            //
+            // this code allows us to use multiline strings inside the code
+            if JackTokenizer::is_string(line) {
+                let start = line.find("\"").unwrap();
+                let end = line[start + 1..].find("\"").unwrap_or(
+                    line.len() - start - 1,
+                ) + 1; 
+
+                // extract rest of symbols before the string
+                let start_word = &line[..start];
+
+                if !start_word.is_empty() {
+                    self.extract_symbols(start_word.trim(), &mut symbols);
+                }
+
+                let range = start..start + end + 1;
+                let word = &line[range.clone()];
+
+                // if final word contains a symbol, we should split it
+                if JackTokenizer::has_symbol(&line) {
+                    // get symbol position at word
+                    let symbol_position = JACK_SYMBOLS.iter().position(|&r| line.contains(r));
+
+                    // if symbol is found, split the world
+                    if symbol_position.is_some() {
+                        // get symbol from array
+                        let symbol = JACK_SYMBOLS[symbol_position.unwrap()];
+
+                        // split the word by the symbol
+                        let split: Vec<&str> = word.split(symbol).collect::<Vec<&str>>();
+
+                        // add the split words
+                        for element in split.iter() {
+                            if element.is_empty() {
+                                continue;
+                            }
+
+
+                            symbols.push(element.to_string());
+                            symbols.push(symbol.to_string());
+                        }
+
+                        continue;
+                    }
+                }
+
+                symbols.push(word.to_string());
                 continue;
             }
-
-            println!("line > {:?}", line);
 
             // split content without whitespaces
             let content: Vec<&str> = line.split_whitespace().collect::<Vec<&str>>();
@@ -226,6 +275,7 @@ impl JackTokenizer {
                 }
             }
         }
+
 
         // iterate across internal symbols and store instructions
         //
@@ -456,7 +506,73 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_simple_command_with_string_multiline() {
+    fn test_parse_simple_command_with_string_with_space_weird() {
+        let mut tokenizer: JackTokenizer =
+            JackTokenizer::new(&String::from("\"hello 934_93\";"), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 2);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+        let last = tokenizer.instructions[tokenizer.instructions.len() - 1].clone();
+
+        // assert
+        assert_eq!(first.value, "\"hello 934_93\"");
+        assert_eq!(last.value, ";");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 2);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::STRINGCONST);
+        assert_eq!(tokenizer.tokens[1].token_type, JackTokenType::SYMBOL);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_string_simple_with_variety() {
+        let mut tokenizer: JackTokenizer =
+            JackTokenizer::new(&String::from("\"hello world\";"), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 2);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+        let last = tokenizer.instructions[tokenizer.instructions.len() - 1].clone();
+
+        // assert
+        assert_eq!(first.value, "\"hello world\"");
+        assert_eq!(last.value, ";");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 2);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::STRINGCONST);
+        assert_eq!(tokenizer.tokens[1].token_type, JackTokenType::SYMBOL);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_string_simple() {
+        let mut tokenizer: JackTokenizer =
+            JackTokenizer::new(&String::from("\"hello world\""), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 1);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+
+        // assert
+        assert_eq!(first.value, "\"hello world\"");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 1);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::STRINGCONST);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_string_with_space() {
         let mut tokenizer: JackTokenizer =
             JackTokenizer::new(&String::from("\"hello world\""), false);
         tokenizer.tokenize();
