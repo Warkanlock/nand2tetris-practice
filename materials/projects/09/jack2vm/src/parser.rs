@@ -279,7 +279,37 @@ impl JackTokenizer {
                         symbol: None,
                         identifier: None,
                     })
-                }
+                },
+                e if e.starts_with("\"") => {
+                    self.tokens.push(JackToken {
+                        token_type: JackTokenType::STRINGCONST,
+                        keyword: None,
+                        int_val: None,
+                        string_val: Some(element.value),
+                        symbol: None,
+                        identifier: None,
+                    })
+                },
+                e if e.parse::<i32>().is_ok() => {
+                    self.tokens.push(JackToken {
+                        token_type: JackTokenType::INTCONST,
+                        keyword: None,
+                        int_val: Some(e.parse::<i32>().unwrap()),
+                        string_val: None,
+                        symbol: None,
+                        identifier: None,
+                    })
+                },
+                e if e.chars().all(char::is_alphanumeric) => {
+                    self.tokens.push(JackToken {
+                        token_type: JackTokenType::IDENTIFIER,
+                        keyword: None,
+                        int_val: None,
+                        string_val: None,
+                        symbol: None,
+                        identifier: Some(element.value),
+                    })
+                },
                 _ => log_info(format!("No token type found for element {:?}", element).as_str()),
             }
         }
@@ -327,6 +357,21 @@ mod tests {
         // assert
         assert_eq!(first.value, "{");
         assert_eq!(last.value, "}");
+    }
+
+    #[test]
+    fn test_parse_simple_command_as_string() {
+        let mut tokenizer: JackTokenizer =
+            JackTokenizer::new(&String::from("\"hello\""), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 1);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+        let last = tokenizer.instructions[tokenizer.instructions.len() - 1].clone();
+
+        // assert
+        assert_eq!(first.value, "\"hello\"");
     }
 
     #[test]
@@ -384,6 +429,63 @@ mod tests {
         // check tokens type as well
         assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::KEYWORD);
         assert_eq!(tokenizer.tokens[0].keyword.unwrap(), JackKeyword::CLASS);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_string() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("\"hello\""), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 1);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+
+        // assert
+        assert_eq!(first.value, "\"hello\"");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 1);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::STRINGCONST);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_int() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("1"), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 1);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+
+        // assert
+        assert_eq!(first.value, "1");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 1);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::INTCONST);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_identifier() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("a"), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 1);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+
+        // assert
+        assert_eq!(first.value, "a");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 1);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::IDENTIFIER);
     }
 
     #[test]
