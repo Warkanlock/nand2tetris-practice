@@ -17,42 +17,7 @@ The repository is structured according to the course's projects:
 
 This repository is organized based on the chapters of the NAND2Tetris book, with each project corresponding to a specific chapter.
 
-> Note: Inside the folder ``practice/chips`` are add-on chips made for practice, but those are not related to the standard course.
-
-### Chapter 1: Boolean Logic
-- **Folder**: `materials/projects/01/`
-  - Description: Implementation of basic logic gates (AND, OR, NOT, etc.)
-  - Contents:
-    - Logic gate HDL files
-    - Test scripts and comparison files
-
-### Chapter 2: Boolean Arithmetic
-- **Folder**: `materials/projects/02/`
-  - Description: Construction of arithmetic circuits like Half Adder, Full Adder, and ALU
-  - Contents:
-    - Arithmetic circuit HDL files
-    - Test scripts and comparison files
-
-### Chapter 3: Sequential Logic
-- **Folder**: `materials/projects/03/`
-  - Description: Building basic sequential circuits such as DFF, Registers, and Counters
-  - Contents:
-    - Sequential circuit HDL files
-    - Test scripts and comparison files
-
-### Chapter 4: Machine Language
-- **Folder**: `materials/projects/04/`
-  - Description: Writing machine language programs and scripts
-  - Contents:
-    - Machine language programs
-    - Test scripts and comparison files
-
-### Chapter 5: Computer Architecture
-- **Folder**: `materials/projects/05/`
-  - Description: Implementation of the Hack CPU and Memory
-  - Contents:
-    - Hack CPU and Memory HDL files
-    - Test scripts and comparison files
+> Note: Inside the folder ``practice/chips`` are add-on chips made for practice, but those are not related to the standard course
 
 Each folder includes the necessary `.hdl` files and other relevant resources.
 
