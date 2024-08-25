@@ -1,4 +1,4 @@
 // this is a comment
 let int a = 1;
-let String b = "this is an string";
+let String b = "this is an\nstring";
 let c = 1 + 1;
