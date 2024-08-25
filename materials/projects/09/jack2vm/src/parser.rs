@@ -1,3 +1,5 @@
+use crate::logs::log_info;
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct JackInstruction {
     pub line: usize,
@@ -7,11 +9,11 @@ pub struct JackInstruction {
 #[derive(Debug, PartialEq, Clone)]
 pub struct JackToken {
     pub token_type: JackTokenType,
-    pub keyword: JackKeyword,
 
     // depending on the token_type, the following fields will be filled
     // or not
-    pub symbol: Option<char>,
+    pub keyword: Option<JackKeyword>,
+    pub symbol: Option<String>,
     pub identifier: Option<String>,
     pub int_val: Option<i32>,
     pub string_val: Option<String>,
@@ -19,6 +21,30 @@ pub struct JackToken {
 
 pub const JACK_SYMBOLS: [&str; 19] = [
     "{", "}", "(", ")", "[", "]", ".", ",", ";", "+", "-", "*", "/", "&", "|", "<", ">", "=", "~",
+];
+
+pub const JACK_KEYWORDS: [&str; 21] = [
+    "class",
+    "constructor",
+    "function",
+    "method",
+    "field",
+    "static",
+    "var",
+    "int",
+    "char",
+    "boolean",
+    "void",
+    "true",
+    "false",
+    "null",
+    "this",
+    "let",
+    "do",
+    "if",
+    "else",
+    "while",
+    "return",
 ];
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -178,8 +204,7 @@ impl JackTokenizer {
             }
 
             // split content without whitespaces
-            let content: Vec<&str> =
-                line.split_whitespace().collect::<Vec<&str>>();
+            let content: Vec<&str> = line.split_whitespace().collect::<Vec<&str>>();
 
             for element in content.iter() {
                 if JackTokenizer::has_symbol(element) {
@@ -190,7 +215,10 @@ impl JackTokenizer {
             }
         }
 
-        // iterate across internal tokens of the content file
+        // iterate across internal symbols and store instructions
+        //
+        // this step is not required not even mandatory but it's to have an
+        // in memory representation before the tokenization
         for (index, input_string) in symbols.iter().enumerate() {
             if self.verbose {
                 println!("input string > {:?}", input_string);
@@ -203,13 +231,66 @@ impl JackTokenizer {
             });
         }
 
+        // iteratae across instructions and specify the token type of each
+        for element in self.instructions.to_owned().clone() {
+            // let's check the token type based on the information present on the element.value
+            match element.value.to_string() {
+                e if JACK_SYMBOLS.contains(&e.as_str()) => self.tokens.push(JackToken {
+                    token_type: JackTokenType::SYMBOL,
+                    keyword: None,
+                    int_val: None,
+                    string_val: None,
+                    symbol: Some(element.value),
+                    identifier: None,
+                }),
+                e if JACK_KEYWORDS.contains(&e.as_str()) => {
+                    // find index of the keyword in the array
+                    let index = JACK_KEYWORDS.iter().position(|&r| r == e).unwrap();
+
+                    // push the token into the tokens array
+                    self.tokens.push(JackToken {
+                        token_type: JackTokenType::KEYWORD,
+                        keyword: Some(match index {
+                            0 => JackKeyword::CLASS,
+                            1 => JackKeyword::CONSTRUCTOR,
+                            2 => JackKeyword::FUNCTION,
+                            3 => JackKeyword::METHOD,
+                            4 => JackKeyword::FIELD,
+                            5 => JackKeyword::STATIC,
+                            6 => JackKeyword::VAR,
+                            7 => JackKeyword::INT,
+                            8 => JackKeyword::CHAR,
+                            9 => JackKeyword::BOOLEAN,
+                            10 => JackKeyword::VOID,
+                            11 => JackKeyword::TRUE,
+                            12 => JackKeyword::FALSE,
+                            13 => JackKeyword::NULL,
+                            14 => JackKeyword::THIS,
+                            15 => JackKeyword::LET,
+                            16 => JackKeyword::DO,
+                            17 => JackKeyword::IF,
+                            18 => JackKeyword::ELSE,
+                            19 => JackKeyword::WHILE,
+                            20 => JackKeyword::RETURN,
+                            _ => panic!("Keyword not found"),
+                        }),
+                        int_val: None,
+                        string_val: None,
+                        symbol: None,
+                        identifier: None,
+                    })
+                }
+                _ => log_info(format!("No token type found for element {:?}", element).as_str()),
+            }
+        }
+
         self
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::JackTokenizer;
+    use crate::parser::{JackKeyword, JackTokenType, JackTokenizer};
 
     #[test]
     fn test_initialization() {
@@ -262,6 +343,47 @@ mod tests {
         // assert
         assert_eq!(first.value, "{");
         assert_eq!(last.value, "}");
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_symbol() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("{}"), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 2);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+        let last = tokenizer.instructions[tokenizer.instructions.len() - 1].clone();
+
+        // assert
+        assert_eq!(first.value, "{");
+        assert_eq!(last.value, "}");
+
+        // check if the tokenizer has the right amount of tokens
+        assert_eq!(tokenizer.tokens.len(), 2);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::SYMBOL);
+    }
+
+    #[test]
+    fn test_parse_simple_command_with_keyword() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("class"), false);
+        tokenizer.tokenize();
+        assert_eq!(tokenizer.instructions.len(), 1);
+
+        // copy first instruction
+        let first = tokenizer.instructions[0].clone();
+
+        // assert
+        assert_eq!(first.value, "class");
+
+        // check tokens
+        assert_eq!(tokenizer.tokens.len(), 1);
+
+        // check tokens type as well
+        assert_eq!(tokenizer.tokens[0].token_type, JackTokenType::KEYWORD);
+        assert_eq!(tokenizer.tokens[0].keyword.unwrap(), JackKeyword::CLASS);
     }
 
     #[test]
