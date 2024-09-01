@@ -68,8 +68,7 @@ pub fn main() {
         log_success(&format!("{}: parsed successfully", filename));
 
         if syntax_tree {
-            log_warn("syntax tree not implemented yet");
-            // TODO: store the syntax tree in a XML file
+            tokenizer.prepare_tree();
         }
 
         // add isntructions into instructions vector

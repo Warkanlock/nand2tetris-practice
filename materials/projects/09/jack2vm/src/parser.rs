@@ -187,6 +187,14 @@ impl JackTokenizer {
         symbols.retain(|x| !x.is_empty());
     }
 
+    pub fn prepare_tree(&mut self) -> &Self {
+        for token in &self.tokens {
+            log_info(format!("{:?}", token).as_str());
+        }
+
+        self
+    }
+
     pub fn tokenize(&mut self) -> &Self {
         // invalidate tokenizer if content is not valid
         if self.content.len() == 0 {
@@ -217,7 +225,6 @@ impl JackTokenizer {
             //
             // this code allows us to use strings inside the code
             //
-            // TODO: add support for multiline strings
             if JackTokenizer::is_string(line) {
                 let start = line.find("\"").unwrap();
                 let end = line.rfind("\"").unwrap();
@@ -235,15 +242,21 @@ impl JackTokenizer {
                         // split by symbol and insert the symbol as well
                         let remaining = line.split(symbol.unwrap()).collect::<Vec<&str>>().join("");
 
-                        // insert the remaining string
-                        symbols.push(remaining.to_string());
+                        println!("{:?}", remaining.replace(word, "").as_str());
 
-                       // insert the symbol
+                        // insert the string symbols
+                        // self.extract_symbols(remaining.replace(word, "").as_str(), &mut symbols);
+
+                        // insert the word
+                        symbols.push(word.to_string());
+
+                        // insert the symbol
                         symbols.push(symbol.unwrap().to_string());
                     }
                 } else {
                     symbols.push(word.to_string());
                 }
+
                 continue;
             }
 
