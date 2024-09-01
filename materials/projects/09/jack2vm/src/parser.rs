@@ -242,10 +242,14 @@ impl JackTokenizer {
                         // split by symbol and insert the symbol as well
                         let remaining = line.split(symbol.unwrap()).collect::<Vec<&str>>().join("");
 
-                        println!("{:?}", remaining.replace(word, "").as_str());
-
                         // insert the string symbols
-                        // self.extract_symbols(remaining.replace(word, "").as_str(), &mut symbols);
+                        let remaining_without_word = remaining.replace(&word, "");
+                        let remaining_trimmed: &str = &remaining_without_word.trim();
+                        let content: Vec<&str> = remaining_trimmed.split_whitespace().collect::<Vec<&str>>();
+
+                        for element in content.iter() {
+                            self.extract_symbols(element, &mut symbols);
+                        }
 
                         // insert the word
                         symbols.push(word.to_string());
@@ -575,7 +579,7 @@ mod tests {
         tokenizer.tokenize();
 
         // check instructions
-        assert_eq!(tokenizer.instructions.len(), 7);
+        assert_eq!(tokenizer.instructions.len(), 11);
     }
 
     #[test]
