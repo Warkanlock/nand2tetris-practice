@@ -60,7 +60,7 @@ pub fn main() {
             .unwrap_or("");
 
         // initialize a tokenizer based on the content
-        let mut tokenizer: JackTokenizer = JackTokenizer::new(&content, true);
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&content, false);
 
         // obtain across tokens
         tokenizer.tokenize();

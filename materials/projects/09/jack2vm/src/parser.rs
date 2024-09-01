@@ -59,26 +59,26 @@ pub enum JackTokenType {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum JackKeyword {
     CLASS,
-    METHOD,
-    FUNCTION,
     CONSTRUCTOR,
-    INT,
-    BOOLEAN,
-    CHAR,
-    VOID,
-    VAR,
-    STATIC,
+    FUNCTION,
+    METHOD,
     FIELD,
+    STATIC,
+    VAR,
+    INT,
+    CHAR,
+    BOOLEAN,
+    VOID,
+    TRUE,
+    FALSE,
+    NULL,
+    THIS,
     LET,
     DO,
     IF,
     ELSE,
     WHILE,
     RETURN,
-    TRUE,
-    FALSE,
-    NULL,
-    THIS,
 }
 
 pub struct JackTokenizer {
@@ -187,9 +187,90 @@ impl JackTokenizer {
         symbols.retain(|x| !x.is_empty());
     }
 
+    fn get_keyword_text_from_index(index: usize) -> &'static str {
+        return match index {
+            0 => "class",
+            1 => "constructor",
+            2 => "function",
+            3 => "method",
+            4 => "field",
+            5 => "static",
+            6 => "var",
+            7 => "int",
+            8 => "char",
+            9 => "boolean",
+            10 => "void",
+            11 => "true",
+            12 => "false",
+            13 => "null",
+            14 => "this",
+            15 => "let",
+            16 => "do",
+            17 => "if",
+            18 => "else",
+            19 => "while",
+            20 => "return",
+            _ => panic!("Keyword not found"),
+        };
+    }
+
+    fn get_keyword_from_index(index: usize) -> JackKeyword {
+        return match index {
+            0 => JackKeyword::CLASS,
+            1 => JackKeyword::CONSTRUCTOR,
+            2 => JackKeyword::FUNCTION,
+            3 => JackKeyword::METHOD,
+            4 => JackKeyword::FIELD,
+            5 => JackKeyword::STATIC,
+            6 => JackKeyword::VAR,
+            7 => JackKeyword::INT,
+            8 => JackKeyword::CHAR,
+            9 => JackKeyword::BOOLEAN,
+            10 => JackKeyword::VOID,
+            11 => JackKeyword::TRUE,
+            12 => JackKeyword::FALSE,
+            13 => JackKeyword::NULL,
+            14 => JackKeyword::THIS,
+            15 => JackKeyword::LET,
+            16 => JackKeyword::DO,
+            17 => JackKeyword::IF,
+            18 => JackKeyword::ELSE,
+            19 => JackKeyword::WHILE,
+            20 => JackKeyword::RETURN,
+            _ => panic!("Keyword not found"),
+        };
+    }
+
     pub fn prepare_tree(&mut self) -> &Self {
-        for token in &self.tokens {
-            log_info(format!("{:?}", token).as_str());
+        while self.tokens.len() > 0 {
+            let token = self.tokens.remove(0);
+
+            match token.token_type {
+                JackTokenType::KEYWORD => {
+                    let token_id = token.keyword.unwrap() as u8;
+                    println!("<keyword>\t{}\t</keyword>", JackTokenizer::get_keyword_text_from_index(token_id as usize));
+                }
+                JackTokenType::SYMBOL => {
+                    if let Some(ref symbol) = token.symbol {
+                        println!("<symbol>\t{}\t</symbol>", symbol);
+                    }
+                }
+                JackTokenType::IDENTIFIER => {
+                    if let Some(ref identifier) = token.identifier {
+                        println!("<identifier>\t{}\t</identifier>", identifier);
+                    }
+                }
+                JackTokenType::INTCONST => {
+                    if let Some(int_const) = token.int_val {
+                        println!("<integerConstant>\t{}\t</integerConstant>", int_const);
+                    }
+                }
+                JackTokenType::STRINGCONST => {
+                    if let Some(ref string_const) = token.string_val {
+                        println!("<stringConstant>\t{}\t</stringConstant>", string_const);
+                    }
+                }
+            }
         }
 
         self
@@ -245,7 +326,8 @@ impl JackTokenizer {
                         // insert the string symbols
                         let remaining_without_word = remaining.replace(&word, "");
                         let remaining_trimmed: &str = &remaining_without_word.trim();
-                        let content: Vec<&str> = remaining_trimmed.split_whitespace().collect::<Vec<&str>>();
+                        let content: Vec<&str> =
+                            remaining_trimmed.split_whitespace().collect::<Vec<&str>>();
 
                         for element in content.iter() {
                             self.extract_symbols(element, &mut symbols);
@@ -311,30 +393,7 @@ impl JackTokenizer {
                     // push the token into the tokens array
                     self.tokens.push(JackToken {
                         token_type: JackTokenType::KEYWORD,
-                        keyword: Some(match index {
-                            0 => JackKeyword::CLASS,
-                            1 => JackKeyword::CONSTRUCTOR,
-                            2 => JackKeyword::FUNCTION,
-                            3 => JackKeyword::METHOD,
-                            4 => JackKeyword::FIELD,
-                            5 => JackKeyword::STATIC,
-                            6 => JackKeyword::VAR,
-                            7 => JackKeyword::INT,
-                            8 => JackKeyword::CHAR,
-                            9 => JackKeyword::BOOLEAN,
-                            10 => JackKeyword::VOID,
-                            11 => JackKeyword::TRUE,
-                            12 => JackKeyword::FALSE,
-                            13 => JackKeyword::NULL,
-                            14 => JackKeyword::THIS,
-                            15 => JackKeyword::LET,
-                            16 => JackKeyword::DO,
-                            17 => JackKeyword::IF,
-                            18 => JackKeyword::ELSE,
-                            19 => JackKeyword::WHILE,
-                            20 => JackKeyword::RETURN,
-                            _ => panic!("Keyword not found"),
-                        }),
+                        keyword: Some(JackTokenizer::get_keyword_from_index(index)),
                         int_val: None,
                         string_val: None,
                         symbol: None,
