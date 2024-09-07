@@ -265,12 +265,30 @@ impl JackTokenizer {
 
     fn compile_var_dec(&mut self) {}
 
-    fn compile_statements(&mut self) {}
+    fn compile_statements(&mut self, parent_node: &mut JackNodeElement) {
+        let token = self.tokens.remove(0);
+
+        match token.token_type {
+            JackTokenType::KEYWORD => match token.keyword.unwrap() {
+                JackKeyword::LET => {
+                    let let_tree = self.compile_let(&token);
+                    parent_node.children.push(let_tree);
+                }
+                JackKeyword::IF => {
+                    let if_tree = self.compile_if();
+                    parent_node.children.push(if_tree);
+                }
+                _ => log_info("[KEYWORD] implemented yet"),
+            },
+            _ => log_info("[TOKEN] implemented yet"),
+        }
+    }
 
     fn compile_let(&mut self, token: &JackToken) -> JackNodeElement {
         let mut let_node = JackNodeElement {
             element_type: JackTokenType::KEYWORD,
-            value: JackTokenizer::get_keyword_text_from_index(token.keyword.unwrap() as usize).to_string(),
+            value: JackTokenizer::get_keyword_text_from_index(token.keyword.unwrap() as usize)
+                .to_string(),
             children: vec![],
         };
 
@@ -336,7 +354,58 @@ impl JackTokenizer {
         let_node
     }
 
-    fn compile_if(&mut self) {}
+    fn compile_if(&mut self) -> JackNodeElement {
+        let root = self.tokens.remove(0);
+
+        let mut if_node = JackNodeElement {
+            element_type: JackTokenType::KEYWORD,
+            value: JackTokenizer::get_keyword_text_from_index(root.keyword.unwrap() as usize)
+                .to_string(),
+            children: vec![],
+        };
+
+        let opening_parenthesis = self.tokens.remove(0);
+        let opening_parenthesis_node = JackNodeElement {
+            element_type: JackTokenType::SYMBOL,
+            value: opening_parenthesis.symbol.unwrap(),
+            children: vec![],
+        };
+
+        let expression = self.compile_expression();
+
+        let closing_parenthesis = self.tokens.remove(0);
+        let closing_parenthesis_node = JackNodeElement {
+            element_type: JackTokenType::SYMBOL,
+            value: closing_parenthesis.symbol.unwrap(),
+            children: vec![],
+        };
+
+        let opening_bracket = self.tokens.remove(0);
+        let opening_bracket_node = JackNodeElement {
+            element_type: JackTokenType::SYMBOL,
+            value: opening_bracket.symbol.unwrap(),
+            children: vec![],
+        };
+
+        if_node.children.push(opening_parenthesis_node);
+        if_node.children.push(expression);
+        if_node.children.push(closing_parenthesis_node);
+        if_node.children.push(opening_bracket_node);
+
+        self.compile_statements(&mut if_node); // compile statements
+
+        let closing_bracket = self.tokens.remove(0);
+        let closing_bracket_node = JackNodeElement {
+            element_type: JackTokenType::SYMBOL,
+            value: closing_bracket.symbol.unwrap(),
+            children: vec![],
+        };
+
+        if_node.children.push(closing_bracket_node);
+
+        // TODO: check if there's an else statement
+        if_node
+    }
 
     fn compile_while(&mut self) {}
 
@@ -381,7 +450,11 @@ impl JackTokenizer {
                     JackKeyword::LET => {
                         let let_tree = self.compile_let(&token);
                         self.ast.push(let_tree);
-                    },
+                    }
+                    JackKeyword::IF => {
+                        let if_tree = self.compile_if();
+                        self.ast.push(if_tree);
+                    }
                     _ => log_info("[KEYWORD] implemented yet"),
                 },
                 _ => log_info("[TOKEN] implemented yet"),
