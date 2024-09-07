@@ -268,7 +268,7 @@ impl JackTokenizer {
     fn compile_let(&mut self, token: &JackToken) -> JackNodeElement {
         let mut let_node = JackNodeElement {
             element_type: JackTokenType::KEYWORD,
-            value: "let".to_string(),
+            value: JackTokenizer::get_keyword_text_from_index(token.keyword.unwrap() as usize).to_string(),
             children: vec![],
         };
 
@@ -866,6 +866,8 @@ mod tests {
         assert_eq!(tokenizer.instructions.len(), 5);
 
         tokenizer.parse_tree();
+
+        println!("{:?}", tokenizer.ast);
 
         assert_eq!(tokenizer.tokens.len(), 0);
         assert_eq!(tokenizer.ast.len(), 1); // one let statement
