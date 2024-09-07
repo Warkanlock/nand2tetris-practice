@@ -251,60 +251,139 @@ impl JackTokenizer {
         };
     }
 
+    fn compile_class(&mut self) {}
+
+    fn compile_class_var_dec(&mut self) {}
+
+    fn compile_subroutine_declaration(&mut self) {}
+
+    fn compile_parameter_list(&mut self) {}
+
+    fn compile_subroutine_body(&mut self) {}
+
+    fn compile_var_dec(&mut self) {}
+
+    fn compile_statements(&mut self) {}
+
+    fn compile_let(&mut self, token: &JackToken) -> JackNodeElement {
+        // TODO: we should use the AST structure 
+        // to store token information instead of just adding to the array
+        let mut let_node = JackNodeElement {
+            element_type: JackTokenType::KEYWORD,
+            value: "let".to_string(),
+            children: vec![],
+        };
+
+        // varName
+        let identifier = self.tokens.remove(0);
+        let identifier_token = JackNodeElement {
+            element_type: JackTokenType::IDENTIFIER,
+            value: identifier.identifier.unwrap(),
+            children: vec![],
+        };
+
+        let_node.children.push(identifier_token);
+
+        // check if it's an array of variables
+        let symbol_or_equal = self.tokens.remove(0);
+        let symbol_or_equal_value = symbol_or_equal.symbol.unwrap();
+        if symbol_or_equal_value == "[" {
+            let bracket_node = JackNodeElement {
+                element_type: JackTokenType::SYMBOL,
+                value: "[".to_string(),
+                children: vec![],
+            };
+
+            // expression
+            let expression_node = self.compile_expression();
+
+            // closing bracket
+            let closing_bracket = self.tokens.remove(0);
+            let closing_bracket_node = JackNodeElement {
+                element_type: JackTokenType::SYMBOL,
+                value: "]".to_string(),
+                children: vec![],
+            };
+
+            // add the nodes to the let_node
+            let_node.children.push(bracket_node);
+            let_node.children.push(expression_node);
+            let_node.children.push(closing_bracket_node);
+        } else {
+            let equal_token = JackNodeElement {
+                element_type: JackTokenType::SYMBOL,
+                value: symbol_or_equal_value,
+                children: vec![],
+            };
+
+            let_node.children.push(equal_token);
+        }
+
+        // expression
+        let expression_node = self.compile_expression();
+        let_node.children.push(expression_node);
+
+        // semicolon
+        let semicolon = self.tokens.remove(0);
+        let semicolon_token = JackNodeElement {
+            element_type: JackTokenType::SYMBOL,
+            value: semicolon.symbol.unwrap(),
+            children: vec![],
+        };
+
+        let_node.children.push(semicolon_token);
+
+        let_node
+    }
+
+    fn compile_if(&mut self) {}
+
+    fn compile_while(&mut self) {}
+
+    fn compile_do(&mut self) {}
+
+    fn compile_return(&mut self) {}
+
+    fn compile_expression(&mut self) -> JackNodeElement {
+        // term
+        self.compile_term()
+    }
+
+    fn compile_term(&mut self) -> JackNodeElement {
+        // integerConstant
+        let current_token = self.tokens.remove(0);
+        if current_token.token_type == JackTokenType::INTCONST {
+            return JackNodeElement {
+                element_type: JackTokenType::INTCONST,
+                value: current_token.int_val.unwrap().to_string(),
+                children: vec![],
+            };
+        }
+
+        // stringConstant
+        // keywordConstant
+        // varName
+        // varName[expression]
+        // subroutineCall
+        // (expression)
+        // unaryOp term
+        panic!("Not implemented yet");
+    }
+
+    fn compile_expression_list(&mut self) {}
+
     pub fn parse_tree(&mut self) -> &Self {
         // this method should be the one use to generate
         // the AST tree from the tokens
         while self.tokens.len() > 0 {
             let token = self.tokens.remove(0);
 
-            fn compile_class() {
-            }
-
-            fn compile_class_var_dec() {
-            }
-
-            fn compile_subroutine_declaration() {
-            }
-
-            fn compile_parameter_list() {
-            }
-
-            fn compile_subroutine_body() {
-            }
-
-            fn compile_var_dec() {
-            }
-
-            fn compile_statements() {
-            }
-
-            fn compile_let() {
-            }
-
-            fn compile_if() {
-            }
-
-            fn compile_while() {
-            }
-
-            fn compile_do() {
-            }
-
-            fn compile_return() {
-            }
-
-            fn compile_expression() {
-            }
-
-            fn compile_term() {
-            }
-
-            fn compile_expression_list() {
-            }
-
             match token.token_type {
                 JackTokenType::KEYWORD => match token.keyword.unwrap() {
-                    JackKeyword::LET => compile_let(),
+                    JackKeyword::LET => {
+                        let let_tree = self.compile_let(&token);
+                        self.ast.push(let_tree);
+                    },
                     _ => log_info("[KEYWORD] implemented yet"),
                 },
                 _ => log_info("[TOKEN] implemented yet"),
@@ -782,18 +861,15 @@ mod tests {
 
     #[test]
     fn test_parse_tree_complex() {
-        let mut tokenizer: JackTokenizer = JackTokenizer::new(
-            &String::from("let a = 1;\nvar String b = \"this is an string\";"),
-            false,
-        );
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(&String::from("let a = 1;\n"), false);
         tokenizer.tokenize();
 
         // check instructions
-        assert_eq!(tokenizer.instructions.len(), 11);
+        assert_eq!(tokenizer.instructions.len(), 5);
 
         tokenizer.parse_tree();
 
         assert_eq!(tokenizer.tokens.len(), 0);
-        assert_eq!(tokenizer.ast.len(), 2); // two expressions as let
+        assert_eq!(tokenizer.ast.len(), 1); // one let statement
     }
 }
