@@ -71,6 +71,8 @@ pub fn main() {
             tokenizer.prepare_tree();
         }
 
+        tokenizer.parse_tree();
+
         // add isntructions into instructions vector
         instructions.extend(vec![u8::from(0)])
     }

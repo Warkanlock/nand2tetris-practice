@@ -81,10 +81,19 @@ pub enum JackKeyword {
     RETURN,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct JackNodeElement {
+    pub element_type: JackTokenType,
+    pub value: String,
+    pub children: Vec<JackNodeElement>,
+}
+
 pub struct JackTokenizer {
     pub content: String, // file content from input
     pub instructions: Vec<JackInstruction>,
     pub tokens: Vec<JackToken>,
+    // a list of elements that will be used to generate the AST
+    pub ast: Vec<JackNodeElement>,
     verbose: bool,
 }
 
@@ -102,6 +111,7 @@ impl JackTokenizer {
             content: content.to_string(), // copy content, not really handy if big files
             instructions: Vec::new(),
             tokens: Vec::new(),
+            ast: Vec::new(),
             verbose,
         }
     }
@@ -241,6 +251,69 @@ impl JackTokenizer {
         };
     }
 
+    pub fn parse_tree(&mut self) -> &Self {
+        // this method should be the one use to generate
+        // the AST tree from the tokens
+        while self.tokens.len() > 0 {
+            let token = self.tokens.remove(0);
+
+            fn compile_class() {
+            }
+
+            fn compile_class_var_dec() {
+            }
+
+            fn compile_subroutine_declaration() {
+            }
+
+            fn compile_parameter_list() {
+            }
+
+            fn compile_subroutine_body() {
+            }
+
+            fn compile_var_dec() {
+            }
+
+            fn compile_statements() {
+            }
+
+            fn compile_let() {
+            }
+
+            fn compile_if() {
+            }
+
+            fn compile_while() {
+            }
+
+            fn compile_do() {
+            }
+
+            fn compile_return() {
+            }
+
+            fn compile_expression() {
+            }
+
+            fn compile_term() {
+            }
+
+            fn compile_expression_list() {
+            }
+
+            match token.token_type {
+                JackTokenType::KEYWORD => match token.keyword.unwrap() {
+                    JackKeyword::LET => compile_let(),
+                    _ => log_info("[KEYWORD] implemented yet"),
+                },
+                _ => log_info("[TOKEN] implemented yet"),
+            }
+        }
+
+        self
+    }
+
     pub fn prepare_tree(&mut self) -> &Self {
         while self.tokens.len() > 0 {
             let token = self.tokens.remove(0);
@@ -248,7 +321,10 @@ impl JackTokenizer {
             match token.token_type {
                 JackTokenType::KEYWORD => {
                     let token_id = token.keyword.unwrap() as u8;
-                    println!("<keyword>\t{}\t</keyword>", JackTokenizer::get_keyword_text_from_index(token_id as usize));
+                    println!(
+                        "<keyword>\t{}\t</keyword>",
+                        JackTokenizer::get_keyword_text_from_index(token_id as usize)
+                    );
                 }
                 JackTokenType::SYMBOL => {
                     if let Some(ref symbol) = token.symbol {
@@ -364,7 +440,7 @@ impl JackTokenizer {
         // in memory representation before the tokenization
         for (index, input_string) in symbols.iter().enumerate() {
             if self.verbose {
-                println!("input string > {:?}", input_string);
+                log_info(format!("input > {:?}", input_string).as_str());
             }
 
             // push the command into the instructions vector
@@ -702,5 +778,22 @@ mod tests {
     fn check_if_is_symbol_false() {
         let symbol: char = 'a';
         assert_eq!(JackTokenizer::is_symbol(symbol), false)
+    }
+
+    #[test]
+    fn test_parse_tree_complex() {
+        let mut tokenizer: JackTokenizer = JackTokenizer::new(
+            &String::from("let a = 1;\nvar String b = \"this is an string\";"),
+            false,
+        );
+        tokenizer.tokenize();
+
+        // check instructions
+        assert_eq!(tokenizer.instructions.len(), 11);
+
+        tokenizer.parse_tree();
+
+        assert_eq!(tokenizer.tokens.len(), 0);
+        assert_eq!(tokenizer.ast.len(), 2); // two expressions as let
     }
 }
