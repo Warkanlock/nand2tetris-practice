@@ -266,8 +266,6 @@ impl JackTokenizer {
     fn compile_statements(&mut self) {}
 
     fn compile_let(&mut self, token: &JackToken) -> JackNodeElement {
-        // TODO: we should use the AST structure 
-        // to store token information instead of just adding to the array
         let mut let_node = JackNodeElement {
             element_type: JackTokenType::KEYWORD,
             value: "let".to_string(),
