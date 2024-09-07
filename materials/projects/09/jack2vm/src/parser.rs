@@ -12,6 +12,8 @@ pub struct JackToken {
 
     // depending on the token_type, the following fields will be filled
     // or not
+    //
+    // note: a better way to represent this is through `enum Value(T)`
     pub keyword: Option<JackKeyword>,
     pub symbol: Option<String>,
     pub identifier: Option<String>,
@@ -371,8 +373,6 @@ impl JackTokenizer {
     fn compile_expression_list(&mut self) {}
 
     pub fn parse_tree(&mut self) -> &Self {
-        // this method should be the one use to generate
-        // the AST tree from the tokens
         while self.tokens.len() > 0 {
             let token = self.tokens.remove(0);
 
