@@ -66,8 +66,12 @@ impl JackParser {
         }
     }
 
-    fn get_current_token(&self) -> &JackToken {
-        &self.tokens[self.current_token]
+    fn get_current_token(&self) -> Option<&JackToken> {
+        if self.current_token >= self.tokens.len() {
+            return None;
+        }
+
+        Some(&self.tokens[self.current_token])
     }
 
     fn write_to(&self, input: &str) {
@@ -75,7 +79,7 @@ impl JackParser {
     }
 
     fn parse_expression(&mut self) -> JackNode {
-              JackNode::Expression {}
+        JackNode::Expression {}
     }
 
     fn parse_let_statement(&mut self) -> JackNode {
@@ -83,10 +87,24 @@ impl JackParser {
         self.advance_token();
 
         let identifier = self.get_current_token().clone();
+
+        if identifier.is_none() {
+            panic!("Expected identifier after let keyword");
+        }
+
+        let identifier = identifier.unwrap().clone();
+
         self.advance_token();
 
         // to avoid borrow checker, we just clone the current token
         let operator = self.get_current_token().clone();
+
+        if operator.is_none() {
+            panic!("Expected operator after identifier");
+        }
+
+        let operator = operator.unwrap().clone();
+
         self.advance_token();
 
         // check if operator is '='
@@ -94,14 +112,12 @@ impl JackParser {
             panic!("This let statement it's wrong formatted")
         }
 
-
         // parse expression
         let expression = self.parse_expression();
+
         self.advance_token();
-
         let end_token = self.get_current_token().clone();
-
-        if end_token.symbol != Some(";".to_string()) {
+        if end_token.is_none() {
             panic!("Expected ';' at the end of let statement");
         }
 
@@ -114,6 +130,12 @@ impl JackParser {
     pub fn parse(&mut self) -> &Self {
         while self.current_token < self.tokens.len() {
             let token = self.get_current_token();
+
+            if token.is_none() {
+                break;
+            }
+
+            let token = token.unwrap();
 
             match token.token_type {
                 JackTokenType::KEYWORD => {
@@ -150,7 +172,7 @@ mod tests {
     use crate::{parser::*, tokenizer::*};
 
     #[test]
-    fn test_parser_keyword() {
+    fn test_parser_keyword_let() {
         // let a = 1;
         let tokens = vec![
             JackToken {
@@ -200,10 +222,7 @@ mod tests {
 
         assert_eq!(parser.tokens.len(), 5);
         assert_eq!(parser.current_token, 5);
-        assert_eq!(
-            parser.ast.len(),
-            1,
-        );
+        assert_eq!(parser.ast.len(), 1,);
 
         let let_statement = &parser.ast[0];
 
@@ -216,6 +235,52 @@ mod tests {
             }
             _ => panic!("Expected LetStatement"),
         }
+    }
+
+    #[should_panic(expected = "Expected ';' at the end of let statement")]
+    #[test]
+    fn test_parser_keyword_let_missing_semicolon() {
+        // let a = 1
+        let tokens = vec![
+            JackToken {
+                token_type: JackTokenType::KEYWORD,
+                keyword: Some(JackKeyword::LET),
+                symbol: None,
+                identifier: None,
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::IDENTIFIER,
+                keyword: None,
+                symbol: None,
+                identifier: Some("a".to_string()),
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::SYMBOL,
+                keyword: None,
+                symbol: Some("=".to_string()),
+                identifier: None,
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::INTCONST,
+                keyword: None,
+                symbol: None,
+                identifier: None,
+                int_val: Some(1),
+                string_val: None,
+            },
+        ];
+
+        let mut parser = JackParser::new(tokens);
+        parser.parse();
+
+        assert_eq!(parser.tokens.len(), 4);
+        assert_eq!(parser.current_token, 4);
     }
 
     #[test]
@@ -348,11 +413,11 @@ mod tests {
 
         let mut parser = JackParser::new(tokens);
         assert_eq!(
-            parser.get_current_token().token_type,
+            parser.get_current_token().unwrap().token_type,
             JackTokenType::INTCONST
         );
         // advance to next token
         parser.advance_token();
-        assert_eq!(parser.get_current_token().token_type, JackTokenType::SYMBOL);
+        assert_eq!(parser.get_current_token().unwrap().token_type, JackTokenType::SYMBOL);
     }
 }
