@@ -1,11 +1,11 @@
 use core::hash;
 
 use crate::{
-    logs::log_info,
+    logs::{log_info, log_warn},
     tokenizer::{JackKeyword, JackToken, JackTokenType},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum JackBinaryOperator {
     Add,
     Substract,
@@ -18,13 +18,13 @@ pub enum JackBinaryOperator {
     Equals,      // =
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum JackUnaryOperator {
     Negate, // -
     Not,    // ~
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum JackNode {
     BinaryOp {
         left: Box<JackNode>,
@@ -35,11 +35,16 @@ pub enum JackNode {
         operator: JackUnaryOperator,
         term: Box<JackNode>,
     },
+    LetStatement {
+        identifier: String,
+        expression: Box<JackNode>,
+    },
+    Expression {},
 }
 
 #[derive(Debug)]
 pub struct JackParser {
-    pub ast: Option<JackNode>,
+    pub ast: Vec<JackNode>,
     current_token: usize, // current track of the token being read
     tokens: Vec<JackToken>,
 }
@@ -48,7 +53,7 @@ impl JackParser {
     pub fn new(tokens: Vec<JackToken>) -> JackParser {
         JackParser {
             tokens,
-            ast: None,
+            ast: vec![],
             current_token: 0,
         }
     }
@@ -65,25 +70,73 @@ impl JackParser {
         &self.tokens[self.current_token]
     }
 
+    fn write_to(&self, input: &str) {
+        log_info(input);
+    }
+
+    fn parse_expression(&mut self) -> JackNode {
+              JackNode::Expression {}
+    }
+
+    fn parse_let_statement(&mut self) -> JackNode {
+        // let identifier '=' expression;
+        self.advance_token();
+
+        let identifier = self.get_current_token().clone();
+        self.advance_token();
+
+        // to avoid borrow checker, we just clone the current token
+        let operator = self.get_current_token().clone();
+        self.advance_token();
+
+        // check if operator is '='
+        if operator.symbol != Some("=".to_string()) {
+            panic!("This let statement it's wrong formatted")
+        }
+
+
+        // parse expression
+        let expression = self.parse_expression();
+        self.advance_token();
+
+        let end_token = self.get_current_token().clone();
+
+        if end_token.symbol != Some(";".to_string()) {
+            panic!("Expected ';' at the end of let statement");
+        }
+
+        JackNode::LetStatement {
+            identifier: identifier.identifier.clone().unwrap(),
+            expression: Box::new(expression),
+        }
+    }
+
     pub fn parse(&mut self) -> &Self {
         while self.current_token < self.tokens.len() {
             let token = self.get_current_token();
 
             match token.token_type {
                 JackTokenType::KEYWORD => {
-                    log_info(&format!("Keyword: {:?}", token.keyword));
+                    log_warn(&format!("Keyword: {:?}", token.keyword));
+                    match token.keyword {
+                        Some(JackKeyword::LET) => {
+                            let let_statement = self.parse_let_statement();
+                            self.ast.push(let_statement);
+                        }
+                        _ => {}
+                    }
                 }
                 JackTokenType::SYMBOL => {
-                    log_info(&format!("Symbol: {:?}", token.symbol));
+                    log_warn(&format!("Symbol: {:?}", token.symbol));
                 }
                 JackTokenType::IDENTIFIER => {
-                    log_info(&format!("Identifier: {:?}", token.identifier));
+                    log_warn(&format!("Identifier: {:?}", token.identifier));
                 }
                 JackTokenType::INTCONST => {
-                    log_info(&format!("IntConst: {:?}", token.int_val));
+                    log_warn(&format!("IntConst: {:?}", token.int_val));
                 }
                 JackTokenType::STRINGCONST => {
-                    log_info(&format!("StringConst: {:?}", token.string_val));
+                    log_warn(&format!("StringConst: {:?}", token.string_val));
                 }
             }
 
@@ -144,6 +197,25 @@ mod tests {
 
         let mut parser = JackParser::new(tokens);
         parser.parse();
+
+        assert_eq!(parser.tokens.len(), 5);
+        assert_eq!(parser.current_token, 5);
+        assert_eq!(
+            parser.ast.len(),
+            1,
+        );
+
+        let let_statement = &parser.ast[0];
+
+        match let_statement {
+            JackNode::LetStatement {
+                identifier,
+                expression,
+            } => {
+                assert_eq!(identifier, "a");
+            }
+            _ => panic!("Expected LetStatement"),
+        }
     }
 
     #[test]
