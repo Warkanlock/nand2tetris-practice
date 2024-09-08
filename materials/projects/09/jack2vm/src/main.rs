@@ -2,10 +2,12 @@
 
 use clap::Parser as ClapParser;
 use jack2vm::logs::{log_info, log_success, log_warn};
-use parser::JackTokenizer;
+use tokenizer::JackTokenizer;
+use parser::JackParser;
 use std::path::Path;
 
 mod logs;
+mod tokenizer;
 mod parser;
 mod utils;
 
@@ -71,7 +73,9 @@ pub fn main() {
             tokenizer.prepare_tree();
         }
 
-        tokenizer.parse_tree();
+        // parse from a list of tokens the correct AST
+        let mut parser : JackParser = JackParser::new();
+        parser.parse(tokenizer.tokens);
 
         // add isntructions into instructions vector
         instructions.extend(vec![u8::from(0)])
