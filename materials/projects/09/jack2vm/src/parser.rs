@@ -142,6 +142,16 @@ impl JackTokenizer {
         s.starts_with("\"") || s.contains("\"")
     }
 
+    fn get_next_token(&mut self) -> Option<JackToken> {
+        if self.tokens.len() == 0 {
+            return None;
+        }
+
+        let token = self.tokens.remove(0);
+
+        return Some(token);
+    }
+
     pub fn extract_symbols(&self, element: &str, symbols: &mut Vec<String>) -> () {
         let mut word = element;
 
@@ -266,7 +276,7 @@ impl JackTokenizer {
     fn compile_var_dec(&mut self) {}
 
     fn compile_statements(&mut self, parent_node: &mut JackNodeElement) {
-        let token = self.tokens.remove(0);
+        let token = self.get_next_token().unwrap();
 
         match token.token_type {
             JackTokenType::KEYWORD => match token.keyword.unwrap() {
@@ -293,7 +303,7 @@ impl JackTokenizer {
         };
 
         // varName
-        let identifier = self.tokens.remove(0);
+        let identifier = self.get_next_token().unwrap();
         let identifier_token = JackNodeElement {
             element_type: JackTokenType::IDENTIFIER,
             value: identifier.identifier.unwrap(),
@@ -303,7 +313,7 @@ impl JackTokenizer {
         let_node.children.push(identifier_token);
 
         // check if it's an array of variables
-        let symbol_or_equal = self.tokens.remove(0);
+        let symbol_or_equal = self.get_next_token().unwrap();
         let symbol_or_equal_value = symbol_or_equal.symbol.unwrap();
         if symbol_or_equal_value == "[" {
             let bracket_node = JackNodeElement {
@@ -316,7 +326,7 @@ impl JackTokenizer {
             let expression_node = self.compile_expression();
 
             // closing bracket
-            let closing_bracket = self.tokens.remove(0);
+            let closing_bracket = self.get_next_token().unwrap();
             let closing_bracket_node = JackNodeElement {
                 element_type: JackTokenType::SYMBOL,
                 value: "]".to_string(),
@@ -342,10 +352,15 @@ impl JackTokenizer {
         let_node.children.push(expression_node);
 
         // semicolon
-        let semicolon = self.tokens.remove(0);
+        let semicolon = self.get_next_token();
+
+        if semicolon.is_none() {
+            return let_node;
+        }
+
         let semicolon_token = JackNodeElement {
             element_type: JackTokenType::SYMBOL,
-            value: semicolon.symbol.unwrap(),
+            value: semicolon.unwrap().symbol.unwrap(),
             children: vec![],
         };
 
@@ -355,7 +370,7 @@ impl JackTokenizer {
     }
 
     fn compile_if(&mut self) -> JackNodeElement {
-        let root = self.tokens.remove(0);
+        let root = self.get_next_token().unwrap();
 
         let mut if_node = JackNodeElement {
             element_type: JackTokenType::KEYWORD,
@@ -364,7 +379,7 @@ impl JackTokenizer {
             children: vec![],
         };
 
-        let opening_parenthesis = self.tokens.remove(0);
+        let opening_parenthesis = self.get_next_token().unwrap();
         let opening_parenthesis_node = JackNodeElement {
             element_type: JackTokenType::SYMBOL,
             value: opening_parenthesis.symbol.unwrap(),
@@ -373,14 +388,14 @@ impl JackTokenizer {
 
         let expression = self.compile_expression();
 
-        let closing_parenthesis = self.tokens.remove(0);
+        let closing_parenthesis = self.get_next_token().unwrap();
         let closing_parenthesis_node = JackNodeElement {
             element_type: JackTokenType::SYMBOL,
             value: closing_parenthesis.symbol.unwrap(),
             children: vec![],
         };
 
-        let opening_bracket = self.tokens.remove(0);
+        let opening_bracket = self.get_next_token().unwrap();
         let opening_bracket_node = JackNodeElement {
             element_type: JackTokenType::SYMBOL,
             value: opening_bracket.symbol.unwrap(),
@@ -394,7 +409,7 @@ impl JackTokenizer {
 
         self.compile_statements(&mut if_node); // compile statements
 
-        let closing_bracket = self.tokens.remove(0);
+        let closing_bracket = self.get_next_token().unwrap();
         let closing_bracket_node = JackNodeElement {
             element_type: JackTokenType::SYMBOL,
             value: closing_bracket.symbol.unwrap(),
@@ -415,35 +430,56 @@ impl JackTokenizer {
 
     fn compile_expression(&mut self) -> JackNodeElement {
         // term
-        self.compile_term()
-    }
+        let mut term = self.compile_term().unwrap();
 
-    fn compile_term(&mut self) -> JackNodeElement {
-        // integerConstant
-        let current_token = self.tokens.remove(0);
-        if current_token.token_type == JackTokenType::INTCONST {
-            return JackNodeElement {
-                element_type: JackTokenType::INTCONST,
-                value: current_token.int_val.unwrap().to_string(),
-                children: vec![],
-            };
+        // op
+        let op_term = self.get_next_token().unwrap();
+        if op_term.token_type != JackTokenType::SYMBOL {
+            return term;
         }
 
-        // stringConstant
-        // keywordConstant
-        // varName
-        // varName[expression]
-        // subroutineCall
-        // (expression)
-        // unaryOp term
-        panic!("Not implemented yet");
+        let mut op_node = JackNodeElement {
+            element_type: JackTokenType::SYMBOL,
+            value: op_term.symbol.unwrap(),
+            children: vec![],
+        };
+
+        // term
+        let operator_term_node = self.compile_term();
+
+        if operator_term_node.is_none() {
+            return term;
+        }
+
+        op_node.children.push(operator_term_node.unwrap());
+        term.children.push(op_node.clone());
+
+        op_node
+    }
+
+    fn compile_term(&mut self) -> Option<JackNodeElement> {
+        // integerConstant
+        let token = self.get_next_token();
+
+        if !token.is_none() {
+            let current_token = token.unwrap();
+            if current_token.token_type == JackTokenType::INTCONST {
+                return Some(JackNodeElement {
+                    element_type: JackTokenType::INTCONST,
+                    value: current_token.int_val.unwrap().to_string(),
+                    children: vec![],
+                });
+            }
+        }
+
+        None
     }
 
     fn compile_expression_list(&mut self) {}
 
     pub fn parse_tree(&mut self) -> &Self {
         while self.tokens.len() > 0 {
-            let token = self.tokens.remove(0);
+            let token = self.get_next_token().unwrap();
 
             match token.token_type {
                 JackTokenType::KEYWORD => match token.keyword.unwrap() {
@@ -466,7 +502,7 @@ impl JackTokenizer {
 
     pub fn prepare_tree(&mut self) -> &Self {
         while self.tokens.len() > 0 {
-            let token = self.tokens.remove(0);
+            let token = self.get_next_token().unwrap();
 
             match token.token_type {
                 JackTokenType::KEYWORD => {
