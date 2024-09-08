@@ -74,8 +74,8 @@ pub fn main() {
         }
 
         // parse from a list of tokens the correct AST
-        let mut parser : JackParser = JackParser::new();
-        parser.parse(tokenizer.tokens);
+        let mut parser : JackParser = JackParser::new(tokenizer.tokens);
+        parser.parse();
 
         // add isntructions into instructions vector
         instructions.extend(vec![u8::from(0)])
