@@ -77,6 +77,9 @@ pub fn main() {
         let mut parser : JackParser = JackParser::new(tokenizer.tokens);
         parser.parse();
 
+        // ast generated after parse the token tree
+        let ast = parser.ast;
+
         // add isntructions into instructions vector
         instructions.extend(vec![u8::from(0)])
     }

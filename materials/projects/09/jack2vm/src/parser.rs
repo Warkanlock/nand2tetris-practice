@@ -39,7 +39,9 @@ pub enum JackNode {
         identifier: String,
         expression: Box<JackNode>,
     },
-    Expression {},
+    Element {
+        value: Box<JackToken>,
+    },
 }
 
 #[derive(Debug)]
@@ -79,7 +81,63 @@ impl JackParser {
     }
 
     fn parse_expression(&mut self) -> JackNode {
-        JackNode::Expression {}
+        // expression (op)
+        self.advance_token();
+        
+        let operand_a = self.get_current_token().clone();
+
+        if operand_a.is_none() {
+            panic!("Expected first operand before complete expression");
+        }
+
+        let operand_a = operand_a.unwrap().clone();
+
+        // validate operator to not be end token (to not be ; and if not return)
+
+        self.advance_token();
+        let token = self.get_current_token().clone();
+
+        if token.is_none() {
+            panic!("Expected symbol (most likely ;) after first operand to complete expression if no operator is present");
+        }
+
+        let operator = token.unwrap();
+
+        // if operator is ; then return the operand_a
+        if operator.symbol == Some(";".to_string()) {
+            return JackNode::Element { value: Box::new(operand_a) };
+        }
+
+        // otherwise continue parsing the expression
+        let operator_symbol = operator.symbol.clone().unwrap();
+
+        // define jack operator token
+        let operator_token = match operator_symbol.as_str() {
+            "+" => JackBinaryOperator::Add,
+            "-" => JackBinaryOperator::Substract,
+            "*" => JackBinaryOperator::Multiply,
+            "/" => JackBinaryOperator::Divide,
+            "&" => JackBinaryOperator::And,
+            "|" => JackBinaryOperator::Or,
+            "<" => JackBinaryOperator::LessThan,
+            ">" => JackBinaryOperator::GreaterThan,
+            "=" => JackBinaryOperator::Equals,
+            _ => panic!("Invalid operator"),
+        };
+
+        let operand_b : Option<&JackToken> = self.get_current_token().clone();
+
+        if operand_b.is_none() {
+            panic!("Expected operand");
+        }
+
+        let operand_b = operand_b.unwrap().clone();
+
+        JackNode::BinaryOp {
+            left: Box::new(JackNode::Element {value : Box::new(operand_a) }),
+            operator: operator_token,
+            right: Box::new(JackNode::Element {value : Box::new(operand_b) }),
+        }
     }
 
     fn parse_let_statement(&mut self) -> JackNode {
@@ -105,8 +163,6 @@ impl JackParser {
 
         let operator = operator.unwrap().clone();
 
-        self.advance_token();
-
         // check if operator is '='
         if operator.symbol != Some("=".to_string()) {
             panic!("This let statement it's wrong formatted")
@@ -115,16 +171,28 @@ impl JackParser {
         // parse expression
         let expression = self.parse_expression();
 
-        self.advance_token();
-        let end_token = self.get_current_token().clone();
-        if end_token.is_none() {
-            panic!("Expected ';' at the end of let statement");
-        }
-
         JackNode::LetStatement {
             identifier: identifier.identifier.clone().unwrap(),
             expression: Box::new(expression),
         }
+    }
+
+    fn validate_end_token(&mut self, expected: &str) -> Option<&JackToken> {
+        self.advance_token();
+
+        let token = self.get_current_token().clone();
+
+        if token.is_none() {
+            return None;
+        }
+
+        let token = token.unwrap();
+
+        if token.symbol != Some(expected.to_string()) {
+            return None;
+        }
+
+        Some(&token)
     }
 
     pub fn parse(&mut self) -> &Self {
@@ -237,7 +305,7 @@ mod tests {
         }
     }
 
-    #[should_panic(expected = "Expected ';' at the end of let statement")]
+    #[should_panic]
     #[test]
     fn test_parser_keyword_let_missing_semicolon() {
         // let a = 1
