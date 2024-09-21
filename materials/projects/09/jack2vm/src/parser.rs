@@ -352,6 +352,88 @@ mod tests {
     }
 
     #[test]
+    fn test_parser_expression() {
+        // let a = 1 + 1;
+        let tokens = vec![
+            JackToken {
+                token_type: JackTokenType::KEYWORD,
+                keyword: Some(JackKeyword::LET),
+                symbol: None,
+                identifier: None,
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::IDENTIFIER,
+                keyword: None,
+                symbol: None,
+                identifier: Some("a".to_string()),
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::SYMBOL,
+                keyword: None,
+                symbol: Some("=".to_string()),
+                identifier: None,
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::INTCONST,
+                keyword: None,
+                symbol: None,
+                identifier: None,
+                int_val: Some(1),
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::SYMBOL,
+                keyword: None,
+                symbol: Some("+".to_string()),
+                identifier: None,
+                int_val: None,
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::INTCONST,
+                keyword: None,
+                symbol: None,
+                identifier: None,
+                int_val: Some(1),
+                string_val: None,
+            },
+            JackToken {
+                token_type: JackTokenType::SYMBOL,
+                keyword: None,
+                symbol: Some(";".to_string()),
+                identifier: None,
+                int_val: None,
+                string_val: None,
+            },
+        ];
+
+        let mut parser = JackParser::new(tokens);
+        parser.parse();
+
+        assert_eq!(parser.tokens.len(), 7);
+        assert_eq!(parser.current_token, 7);
+        assert_eq!(parser.ast.len(), 1);
+
+        let let_statement = &parser.ast[0];
+
+        match let_statement {
+            JackNode::LetStatement {
+                identifier,
+                expression,
+            } => {
+                assert_eq!(identifier, "a");
+            }
+            _ => panic!("Expected LetStatement"),
+        }
+    }
+
+    #[test]
     fn test_parser_advance_token() {
         // let a = 1;
         let tokens = vec![
